@@ -7,7 +7,7 @@ const StepSchema = new mongoose.Schema({
   response_time: { type: Number, default: 0 },
   is_success:    { type: Boolean, default: true },
   timestamp:     { type: Date, default: Date.now },
-}, { _id: false }); // no separate _id per step — they live inside the run
+}, { _id: false });
 
 const ResultSchema = new mongoose.Schema(
   {
@@ -16,28 +16,24 @@ const ResultSchema = new mongoose.Schema(
     script_type:    { type: String, enum: ['5min', '30min', 'other'], default: 'other' },
     timestamp:      { type: Date, default: Date.now },
     total_duration: { type: Number, default: 0 },
+    steps:          { type: [StepSchema], required: true },
 
-    steps: { type: [StepSchema], required: true },
-
-    // Derived fields — computed before save, stored for fast querying
-    total_steps:   { type: Number, default: 0 },
-    failed_steps:  { type: Number, default: 0 },
-    passed_steps:  { type: Number, default: 0 },
-    has_failure:   { type: Boolean, default: false },
+    total_steps:  { type: Number, default: 0 },
+    failed_steps: { type: Number, default: 0 },
+    passed_steps: { type: Number, default: 0 },
+    has_failure:  { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Auto-compute derived fields before every save
-ResultSchema.pre('save', function (next) {
+// ✅ async pre-save — works on Mongoose 6, 7, and 8
+ResultSchema.pre('save', async function () {
   this.total_steps  = this.steps.length;
   this.failed_steps = this.steps.filter(s => !s.is_success).length;
   this.passed_steps = this.steps.filter(s =>  s.is_success).length;
   this.has_failure  = this.failed_steps > 0;
-  next();
 });
 
-// Indexes for fast dashboard queries
 ResultSchema.index({ project: 1, timestamp: -1 });
 ResultSchema.index({ has_failure: 1, timestamp: -1 });
 ResultSchema.index({ 'steps.step': 1 });
