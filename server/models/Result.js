@@ -16,6 +16,7 @@ const ResultSchema = new mongoose.Schema(
     script_type:    { type: String, enum: ['5min', '30min', 'other'], default: 'other' },
     timestamp:      { type: Date, default: Date.now },
     total_duration: { type: Number, default: 0 },
+    build_number:   { type: String, trim: true, default: '' },  //new line
     steps:          { type: [StepSchema], required: true },
 
     total_steps:  { type: Number, default: 0 },
@@ -38,5 +39,6 @@ ResultSchema.index({ project: 1, timestamp: -1 });
 ResultSchema.index({ has_failure: 1, timestamp: -1 });
 ResultSchema.index({ 'steps.step': 1 });
 ResultSchema.index({ cluster: 1, script_type: 1 });
+ResultSchema.index({ build_number: 1 });
 
 module.exports = mongoose.model('Result', ResultSchema);

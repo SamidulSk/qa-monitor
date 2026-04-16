@@ -1,8 +1,8 @@
 // server/routes/results.js
 const express = require('express');
-const router  = express.Router();
-const Result  = require('../models/Result');
-const auth    = require('../middleware/auth');
+const router = express.Router();
+const Result = require('../models/Result');
+const auth = require('../middleware/auth');
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/results
@@ -12,7 +12,7 @@ router.post('/', auth, async (req, res) => {
   try {
     const payload = req.body.data || req.body;
 
-    const { project, cluster, script_type, timestamp, total_duration, steps } = payload;
+    const { project, cluster, script_type, timestamp, total_duration, build_number, steps } = payload;
 
     // Validate required fields
     if (!project) {
@@ -39,21 +39,23 @@ router.post('/', auth, async (req, res) => {
 
     const result = new Result({
       project,
-      cluster:        cluster || 'default',
-      script_type:    script_type || 'other',
-      timestamp:      timestamp ? new Date(timestamp) : new Date(),
+      cluster: cluster || 'default',
+      script_type: script_type || 'other',
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
       total_duration: parseFloat(total_duration) || 0,
+      build_number: String(build_number || ''),          // ← new line
+
       steps,
     });
 
     const saved = await result.save();
 
     res.status(201).json({
-      success:      true,
-      id:           saved._id,
-      total_steps:  saved.total_steps,
+      success: true,
+      id: saved._id,
+      total_steps: saved.total_steps,
       failed_steps: saved.failed_steps,
-      has_failure:  saved.has_failure,
+      has_failure: saved.has_failure,
     });
   } catch (err) {
     console.error('POST /api/results error:', err.message);
@@ -74,22 +76,23 @@ router.get('/', async (req, res) => {
       status,       // "failed" | "passed"
       from,
       to,
-      page  = 1,
+      page = 1,
       limit = 50,
     } = req.query;
 
     const filter = {};
-    if (project)     filter.project     = project;
-    if (cluster)     filter.cluster     = cluster;
+    if (project) filter.project = project;
+    if (cluster) filter.cluster = cluster;
     if (script_type) filter.script_type = script_type;
     if (status === 'failed') filter.has_failure = true;
     if (status === 'passed') filter.has_failure = false;
     if (from || to) {
       filter.timestamp = {};
       if (from) filter.timestamp.$gte = new Date(from);
-      if (to)   filter.timestamp.$lte = new Date(to);
+      if (to) filter.timestamp.$lte = new Date(to);
     }
-
+    //  after the script_type filter line:
+    if (req.query.build_number) filter.build_number = req.query.build_number;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const [results, total] = await Promise.all([
@@ -99,8 +102,8 @@ router.get('/', async (req, res) => {
 
     res.json({
       total,
-      page:    parseInt(page),
-      pages:   Math.ceil(total / parseInt(limit)),
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
       results,
     });
   } catch (err) {
@@ -119,13 +122,13 @@ router.get('/summary', async (req, res) => {
     const { project, cluster, script_type, from, to } = req.query;
 
     const matchStage = {};
-    if (project)     matchStage.project     = project;
-    if (cluster)     matchStage.cluster     = cluster;
+    if (project) matchStage.project = project;
+    if (cluster) matchStage.cluster = cluster;
     if (script_type) matchStage.script_type = script_type;
     if (from || to) {
       matchStage.timestamp = {};
       if (from) matchStage.timestamp.$gte = new Date(from);
-      if (to)   matchStage.timestamp.$lte = new Date(to);
+      if (to) matchStage.timestamp.$lte = new Date(to);
     }
 
     const [stepSummary, runSummary] = await Promise.all([
@@ -136,12 +139,12 @@ router.get('/summary', async (req, res) => {
         { $unwind: '$steps' },
         {
           $group: {
-            _id:               '$steps.step',
-            total:             { $sum: 1 },
-            failures:          { $sum: { $cond: [{ $eq: ['$steps.is_success', false] }, 1, 0] } },
-            passes:            { $sum: { $cond: [{ $eq: ['$steps.is_success', true]  }, 1, 0] } },
+            _id: '$steps.step',
+            total: { $sum: 1 },
+            failures: { $sum: { $cond: [{ $eq: ['$steps.is_success', false] }, 1, 0] } },
+            passes: { $sum: { $cond: [{ $eq: ['$steps.is_success', true] }, 1, 0] } },
             avg_response_time: { $avg: '$steps.response_time' },
-            last_run:          { $max: '$timestamp' },
+            last_run: { $max: '$timestamp' },
           },
         },
         {
@@ -162,12 +165,12 @@ router.get('/summary', async (req, res) => {
         { $match: matchStage },
         {
           $group: {
-            _id:             null,
-            total_runs:      { $sum: 1 },
-            failed_runs:     { $sum: { $cond: ['$has_failure', 1, 0] } },
+            _id: null,
+            total_runs: { $sum: 1 },
+            failed_runs: { $sum: { $cond: ['$has_failure', 1, 0] } },
             total_steps_run: { $sum: '$total_steps' },
-            total_failures:  { $sum: '$failed_steps' },
-            avg_duration:    { $avg: '$total_duration' },
+            total_failures: { $sum: '$failed_steps' },
+            avg_duration: { $avg: '$total_duration' },
           },
         },
       ]),
