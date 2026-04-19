@@ -398,7 +398,7 @@ function SidebarLogo({ T }) {
               letterSpacing:"-0.03em", lineHeight:1.1,
             }}>Document</span>
           </div>
-          <div style={{display:"flex", alignItems:"center", gap:6, marginTop:1}}>
+          <div style={{display:"flex", alignItems:"center", gap:3, marginTop:1}}>
             <span style={{
               fontFamily:"'Inter',sans-serif", fontWeight:400, fontSize:14.5,
               color: isDark ? "rgba(255,255,255,0.50)" : "#5B6880",
