@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 const API_BASE = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) || "https://qa-monitor.onrender.com";
-const TOKEN    = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_TOKEN) || "qa_monitor_secret_2026_xK9mP2";
+const TOKEN    = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_TOKEN) ;
 const POLL_MS  = 30000;
 
 /* ─── RETRY FETCH ─────────────────────────────────────────────── */
@@ -26,88 +26,79 @@ async function apiFetch(url, opts = {}, retries = 4) {
 /* ─── THEME TOKENS ────────────────────────────────────────────── */
 const DARK = {
   mode:        "dark",
-  /* backgrounds */
-  pageBg:      "#0B0F17",
-  cardBg:      "#111827",
-  cardBg2:     "#1A2234",
-  inputBg:     "#1A2234",
-  sidebarBg:         "#070B12",
-  sidebarBorder:     "rgba(255,255,255,0.06)",
-  sidebarItem:       "rgba(255,255,255,0.06)",
+  pageBg:      "#080C14",
+  cardBg:      "#0E1422",
+  cardBg2:     "#131929",
+  inputBg:     "#131929",
+  sidebarBg:         "#060A10",
+  sidebarBorder:     "rgba(255,255,255,0.05)",
+  sidebarItem:       "rgba(255,255,255,0.04)",
   sidebarActiveText: "#FFFFFF",
-  sidebarActiveBg:   "rgba(59,130,246,0.18)",
-  sidebarActiveIcon: "#93C5FD",
-  sidebarActiveBar:  "#3B82F6",
-  sidebarText:       "rgba(255,255,255,0.70)",
-  sidebarSub:        "rgba(255,255,255,0.38)",
-  sidebarFooter:     "rgba(255,255,255,0.28)",
-  sidebarLiveBg:     "rgba(52,211,153,0.12)",
-  sidebarLiveBorder: "rgba(52,211,153,0.22)",
+  sidebarActiveBg:   "rgba(99,102,241,0.15)",
+  sidebarActiveIcon: "#A5B4FC",
+  sidebarActiveBar:  "#6366F1",
+  sidebarText:       "rgba(255,255,255,0.62)",
+  sidebarSub:        "rgba(255,255,255,0.30)",
+  sidebarFooter:     "rgba(255,255,255,0.22)",
+  sidebarLiveBg:     "rgba(52,211,153,0.08)",
+  sidebarLiveBorder: "rgba(52,211,153,0.18)",
   sidebarLiveText:   "#6EE7B7",
   sidebarLiveDot:    "#34D399",
-  /* borders */
-  border:      "rgba(255,255,255,0.08)",
-  borderMid:   "rgba(255,255,255,0.14)",
-  borderFocus: "#3B82F6",
-  /* text — every level passes WCAG AA on card backgrounds */
-  t0:          "#F1F5F9",   /* headings */
-  t1:          "#CBD5E1",   /* body */
-  t2:          "#94A3B8",   /* secondary — NOT #9CA3AF on dark bg */
-  t3:          "#64748B",   /* muted hints */
-  /* semantic */
-  accent:      "#3B82F6",
-  accentBg:    "rgba(59,130,246,0.14)",
-  accentHover: "#2563EB",
+  border:      "rgba(255,255,255,0.07)",
+  borderMid:   "rgba(255,255,255,0.12)",
+  borderFocus: "#6366F1",
+  t0:          "#F0F4FF",
+  t1:          "#C4CDDF",
+  t2:          "#8896AC",
+  t3:          "#4E5C72",
+  accent:      "#6366F1",
+  accentBg:    "rgba(99,102,241,0.12)",
+  accentHover: "#4F46E5",
   success:     "#34D399",
-  successBg:   "rgba(52,211,153,0.12)",
+  successBg:   "rgba(52,211,153,0.10)",
   warn:        "#FBBF24",
-  warnBg:      "rgba(251,191,36,0.12)",
+  warnBg:      "rgba(251,191,36,0.10)",
   danger:      "#F87171",
-  dangerBg:    "rgba(248,113,113,0.12)",
+  dangerBg:    "rgba(248,113,113,0.10)",
   info:        "#67E8F9",
-  infoBg:      "rgba(103,232,249,0.10)",
+  infoBg:      "rgba(103,232,249,0.08)",
   gold:        "#FCD34D",
-  goldBg:      "rgba(252,211,77,0.12)",
-  /* shadows */
-  shadow:      "0 1px 4px rgba(0,0,0,0.5)",
-  shadowMd:    "0 4px 16px rgba(0,0,0,0.6)",
-  shadowLg:    "0 8px 32px rgba(0,0,0,0.7)",
+  goldBg:      "rgba(252,211,77,0.10)",
+  shadow:      "0 1px 4px rgba(0,0,0,0.6)",
+  shadowMd:    "0 4px 20px rgba(0,0,0,0.7)",
+  shadowLg:    "0 8px 40px rgba(0,0,0,0.8)",
 };
 
 const LIGHT = {
   mode:        "light",
-  /* backgrounds */
-  pageBg:      "#F1F5F9",
+  pageBg:      "#F0F2F8",
   cardBg:      "#FFFFFF",
-  cardBg2:     "#F8FAFC",
-  inputBg:     "#F1F5F9",
+  cardBg2:     "#F7F9FC",
+  inputBg:     "#F0F2F8",
   sidebarBg:         "#FFFFFF",
-  sidebarBorder:     "#E2E8F0",
-  sidebarItem:       "rgba(37,99,235,0.07)",
-  sidebarActiveText: "#1E293B",
-  sidebarActiveBg:   "rgba(37,99,235,0.10)",
-  sidebarActiveIcon: "#2563EB",
-  sidebarActiveBar:  "#2563EB",
-  sidebarText:       "#374151",
+  sidebarBorder:     "#E4E8F0",
+  sidebarItem:       "rgba(99,102,241,0.06)",
+  sidebarActiveText: "#1A1F36",
+  sidebarActiveBg:   "rgba(99,102,241,0.09)",
+  sidebarActiveIcon: "#4F46E5",
+  sidebarActiveBar:  "#4F46E5",
+  sidebarText:       "#3D4663",
   sidebarSub:        "#9CA3AF",
   sidebarFooter:     "#9CA3AF",
-  sidebarLiveBg:     "rgba(5,150,105,0.08)",
-  sidebarLiveBorder: "rgba(5,150,105,0.20)",
+  sidebarLiveBg:     "rgba(5,150,105,0.06)",
+  sidebarLiveBorder: "rgba(5,150,105,0.18)",
   sidebarLiveText:   "#059669",
   sidebarLiveDot:    "#10B981",
-  /* borders */
-  border:      "#E2E8F0",
-  borderMid:   "#CBD5E1",
-  borderFocus: "#2563EB",
-  /* text — all pass WCAG AA on white */
-  t0:          "#0F172A",   /* headings */
-  t1:          "#1E293B",   /* body */
-  t2:          "#475569",   /* secondary */
-  t3:          "#64748B",   /* muted — darker than before */
-  /* semantic */
-  accent:      "#2563EB",
-  accentBg:    "#EFF6FF",
-  accentHover: "#1D4ED8",
+  border:      "#E4E8F0",
+  borderMid:   "#CBD2DF",
+  borderFocus: "#4F46E5",
+  t0:          "#0D1220",
+  t1:          "#1E2A3D",
+  t2:          "#4A5568",
+  t3:          "#6B7A94",
+  accent:      "#4F46E5",
+  accentBg:    "#EEF2FF",
+  accentHover: "#3730A3",
   success:     "#059669",
   successBg:   "#ECFDF5",
   warn:        "#D97706",
@@ -118,15 +109,14 @@ const LIGHT = {
   infoBg:      "#E0F2FE",
   gold:        "#92400E",
   goldBg:      "#FEF3C7",
-  /* shadows */
-  shadow:      "0 1px 3px rgba(15,23,42,0.08)",
-  shadowMd:    "0 4px 12px rgba(15,23,42,0.10)",
-  shadowLg:    "0 8px 24px rgba(15,23,42,0.12)",
+  shadow:      "0 1px 3px rgba(13,18,32,0.07)",
+  shadowMd:    "0 4px 14px rgba(13,18,32,0.09)",
+  shadowLg:    "0 8px 28px rgba(13,18,32,0.11)",
 };
 
 /* ─── CSS FACTORY ─────────────────────────────────────────────── */
 const makeCSS = (T) => `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -135,53 +125,60 @@ body{
   font-family:'Inter',system-ui,sans-serif;font-size:15px;
   line-height:1.6;-webkit-font-smoothing:antialiased;
   min-height:100vh;overflow-x:hidden;
-  transition:background .25s,color .25s;
+  transition:background .3s,color .3s;
 }
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:${T.cardBg2}}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:${T.borderMid};border-radius:99px}
 
 /* ── KEYFRAMES ── */
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes slideR{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideR{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-@keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
-@keyframes logoSlide{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
-@keyframes logoBadge{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
-@keyframes liveRipple{0%{transform:scale(1);opacity:.9}100%{transform:scale(2.6);opacity:0}}
-@keyframes badgeFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-4px) rotate(1deg)}}
-@keyframes badgePulseRing{0%{box-shadow:0 4px 18px rgba(37,99,235,0.45),0 0 0 0 rgba(37,99,235,0.4)}70%{box-shadow:0 4px 18px rgba(37,99,235,0.45),0 0 0 8px rgba(37,99,235,0)}100%{box-shadow:0 4px 18px rgba(37,99,235,0.45),0 0 0 0 rgba(37,99,235,0)}}
-@keyframes shineSwipe{0%{left:-80%}100%{left:140%}}
-@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-@keyframes barIn{from{width:0}to{width:var(--w)}}
-@keyframes borderPop{0%,100%{border-color:${T.danger}35}50%{border-color:${T.danger}80}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes shimmer{0%{background-position:-700px 0}100%{background-position:700px 0}}
+@keyframes logoReveal{from{opacity:0;transform:translateX(-16px) scale(.96)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes badgePop{from{opacity:0;transform:scale(.6) rotate(-6deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
+@keyframes liveRipple{0%{transform:scale(1);opacity:.8}100%{transform:scale(2.8);opacity:0}}
+@keyframes countUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes borderPop{0%,100%{border-color:${T.danger}30}50%{border-color:${T.danger}70}}
+@keyframes navItemIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes topbarIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes orbitSpin{from{transform:rotate(0deg) translateX(11px) rotate(0deg)}to{transform:rotate(360deg) translateX(11px) rotate(-360deg)}}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.4)}}
 
-.fu{animation:fadeUp .42s cubic-bezier(.22,1,.36,1) both}
-.fi{animation:fadeIn .3s ease both}
-.sr{animation:slideR .32s cubic-bezier(.22,1,.36,1) both}
+.fu{animation:fadeUp .44s cubic-bezier(.22,1,.36,1) both}
+.fi{animation:fadeIn .32s ease both}
+.sr{animation:slideR .34s cubic-bezier(.22,1,.36,1) both}
 
 /* ── CARDS ── */
 .card{
   background:${T.cardBg};border:1px solid ${T.border};
-  border-radius:14px;box-shadow:${T.shadow};
-  transition:border-color .18s,box-shadow .18s;overflow:hidden;
+  border-radius:16px;box-shadow:${T.shadow};
+  transition:border-color .2s,box-shadow .2s;overflow:hidden;
 }
 .card:hover{border-color:${T.borderMid};box-shadow:${T.shadowMd}}
 
 /* ── BUTTONS ── */
 .btn{
   display:inline-flex;align-items:center;gap:7px;
-  padding:9px 18px;border-radius:8px;border:1px solid ${T.border};
+  padding:9px 18px;border-radius:9px;border:1px solid ${T.border};
   background:${T.cardBg};color:${T.t1};
   font-family:'Inter',sans-serif;font-size:14px;font-weight:500;
-  cursor:pointer;transition:all .15s;white-space:nowrap;
+  cursor:pointer;transition:all .16s;white-space:nowrap;
 }
 .btn:hover{background:${T.cardBg2};border-color:${T.borderMid};color:${T.t0};box-shadow:${T.shadow}}
 .btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
-.btn.primary{background:${T.accent};border-color:${T.accent};color:#fff;font-weight:600}
-.btn.primary:hover{background:${T.accentHover};border-color:${T.accentHover};box-shadow:0 4px 14px ${T.accent}44}
+.btn.primary{
+  background:linear-gradient(135deg,${T.accent} 0%,${T.accentHover} 100%);
+  border-color:transparent;color:#fff;font-weight:600;
+  box-shadow:0 2px 12px ${T.accent}44;
+}
+.btn.primary:hover{
+  background:linear-gradient(135deg,${T.accentHover} 0%,${T.accent} 100%);
+  box-shadow:0 4px 18px ${T.accent}55;transform:translateY(-1px);
+}
 .btn.ghost{background:transparent;border-color:transparent;color:${T.t2}}
 .btn.ghost:hover{background:${T.cardBg2};border-color:${T.border};color:${T.t0}}
 
@@ -200,20 +197,16 @@ body{
 
 /* ── INPUTS ── */
 input,select{
-  background:${T.inputBg};border:1px solid ${T.border};border-radius:8px;
+  background:${T.inputBg};border:1px solid ${T.border};border-radius:9px;
   color:${T.t0};font-family:'Inter',sans-serif;font-size:14px;
   padding:8px 12px;outline:none;
-  transition:border-color .18s,box-shadow .18s,transform .15s,background .15s;
+  transition:border-color .18s,box-shadow .18s,transform .15s;
   min-width:0;
 }
-input:hover,select:hover{
-  border-color:${T.borderMid};
-  transform:translateY(-1px);
-  box-shadow:0 3px 8px ${T.shadow.includes("0.5")?"rgba(0,0,0,0.35)":"rgba(15,23,42,0.07)"};
-}
+input:hover,select:hover{border-color:${T.borderMid};transform:translateY(-1px)}
 input:focus,select:focus{
   border-color:${T.borderFocus};
-  box-shadow:0 0 0 3px ${T.accent}28, 0 3px 10px ${T.accent}18;
+  box-shadow:0 0 0 3px ${T.accent}22;
   transform:translateY(-1px);
   background:${T.cardBg};
 }
@@ -222,7 +215,7 @@ select option{background:${T.cardBg};color:${T.t0}}
 /* ── TABLE ── */
 table{border-collapse:collapse;width:100%}
 th{
-  color:${T.t2};font-size:12px;font-weight:600;letter-spacing:.04em;
+  color:${T.t2};font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   padding:11px 16px;border-bottom:1px solid ${T.border};
   text-align:left;white-space:nowrap;background:${T.cardBg2};
 }
@@ -231,13 +224,13 @@ td{
   font-size:14px;color:${T.t1};vertical-align:middle;
 }
 tr:last-child td{border-bottom:none}
-tbody tr{transition:background .1s}
+tbody tr{transition:background .12s}
 tbody tr:hover td{background:${T.cardBg2};color:${T.t0}}
 
 /* ── SKELETON ── */
 .skel{
   background:linear-gradient(90deg,${T.cardBg2} 25%,${T.border} 50%,${T.cardBg2} 75%);
-  background-size:600px 100%;animation:shimmer 1.5s ease infinite;border-radius:6px;
+  background-size:700px 100%;animation:shimmer 1.6s ease infinite;border-radius:8px;
 }
 
 /* ── RESPONSIVE ── */
@@ -270,7 +263,7 @@ function Counter({ to, dec=0, suffix="" }) {
   useEffect(()=>{
     const target=parseFloat(to)||0, from=prev.current;
     prev.current=target;
-    const t0=Date.now(), dur=750;
+    const t0=Date.now(), dur=800;
     const tick=()=>{ const p=Math.min((Date.now()-t0)/dur,1), e=1-Math.pow(1-p,3); setV(from+(target-from)*e); if(p<1) raf.current=requestAnimationFrame(tick); };
     raf.current=requestAnimationFrame(tick);
     return ()=>cancelAnimationFrame(raf.current);
@@ -289,13 +282,13 @@ function Spark({ data=[], color, w=72, h=32 }) {
     <svg width={w} height={h} style={{display:"block",overflow:"visible",flexShrink:0}}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity=".28"/>
+          <stop offset="0%" stopColor={color} stopOpacity=".25"/>
           <stop offset="100%" stopColor={color} stopOpacity="0"/>
         </linearGradient>
       </defs>
       <polygon points={`0,${h} ${line} ${w},${h}`} fill={`url(#${id})`}/>
       <polyline points={line} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/>
-      <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="2.8" fill={color}/>
+      <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="2.6" fill={color}/>
     </svg>
   );
 }
@@ -305,10 +298,10 @@ function Gauge({ failRate=0, T, size=70 }) {
   const r=26, circ=2*Math.PI*r, health=100-Math.min(parseFloat(failRate)||0,100), col=healthC(failRate,T);
   return (
     <svg width={size} height={size} viewBox="0 0 72 72" style={{flexShrink:0}}>
-      <circle cx="36" cy="36" r={r} fill="none" stroke={T.border} strokeWidth="6"/>
-      <circle cx="36" cy="36" r={r} fill="none" stroke={col} strokeWidth="6"
+      <circle cx="36" cy="36" r={r} fill="none" stroke={T.border} strokeWidth="5"/>
+      <circle cx="36" cy="36" r={r} fill="none" stroke={col} strokeWidth="5"
         strokeDasharray={`${circ*(health/100)} ${circ*(1-health/100)}`} strokeLinecap="round"
-        transform="rotate(-90 36 36)" style={{transition:"stroke-dasharray 1.1s cubic-bezier(.22,1,.36,1)"}}/>
+        transform="rotate(-90 36 36)" style={{transition:"stroke-dasharray 1.2s cubic-bezier(.22,1,.36,1)",filter:`drop-shadow(0 0 4px ${col}66)`}}/>
       <text x="36" y="33" textAnchor="middle" fontSize="12" fontWeight="700" fill={col} fontFamily="Inter,sans-serif">{Math.round(health)}%</text>
       <text x="36" y="47" textAnchor="middle" fontSize="9" fill={T.t3} fontFamily="Inter,sans-serif">HEALTH</text>
     </svg>
@@ -335,120 +328,117 @@ function WakeBanner({ T }) {
   );
 }
 
+/* ─── ANIMATED ARC LOGO ICON ──────────────────────────────────── */
+function ArcLogoIcon({ size=46, animate=false }) {
+  return (
+    <div style={{
+      width:size, height:size, borderRadius:13, flexShrink:0, position:"relative",
+      background:"linear-gradient(145deg,#6366F1 0%,#4F46E5 45%,#3730A3 100%)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      boxShadow:"0 4px 20px rgba(99,102,241,0.5), inset 0 1px 0 rgba(255,255,255,0.15)",
+      animation: animate ? "badgePop .55s cubic-bezier(.34,1.56,.64,1) .1s both" : undefined,
+    }}>
+      {/* Subtle top-left highlight */}
+      <div style={{
+        position:"absolute", top:3, left:3, width:18, height:18,
+        borderRadius:"50%",
+        background:"radial-gradient(circle at 30% 30%, rgba(255,255,255,0.22), transparent 70%)",
+        pointerEvents:"none",
+      }}/>
+      {/* Orbiting dot */}
+      <div style={{
+        position:"absolute", width:"100%", height:"100%",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        animation:"orbitSpin 3.5s linear infinite",
+      }}>
+        <div style={{
+          width:5, height:5, borderRadius:"50%",
+          background:"rgba(255,255,255,0.55)",
+          boxShadow:"0 0 6px rgba(255,255,255,0.8)",
+          marginTop:-size*0.28,
+        }}/>
+      </div>
+      <span style={{
+        fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:Math.round(size*0.34),
+        color:"#fff", letterSpacing:"-0.04em", position:"relative", zIndex:1,
+      }}>ARC</span>
+    </div>
+  );
+}
+
 /* ─── LOGO ────────────────────────────────────────────────────── */
 function SidebarLogo({ T }) {
-  const [pressed,  setPressed]  = useState(false);
-  const [hovered,  setHovered]  = useState(false);
-  const shineRef = useRef();
-
-  /* click: spring pop + trigger shine swipe */
-  const handleClick = () => {
-    setPressed(true);
-    /* re-trigger shine animation by removing + re-adding the class trick via style swap */
-    if (shineRef.current) {
-      shineRef.current.style.animation = "none";
-      shineRef.current.getBoundingClientRect(); // force reflow
-      shineRef.current.style.animation = "shineSwipe .55s ease forwards";
-    }
-    setTimeout(() => setPressed(false), 380);
-  };
-
+  const [pressed, setPressed] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const isDark = T.mode === "dark";
 
-  /* badge dynamic style */
-  const badgeStyle = {
-    width:48, height:48, borderRadius:13, flexShrink:0,
-    background:"linear-gradient(135deg,#2563EB 0%,#1D4ED8 55%,#1E40AF 100%)",
-    display:"flex", alignItems:"center", justifyContent:"center",
-    position:"relative", overflow:"hidden",
-    cursor:"pointer",
-    /* entry animation — plays once on mount */
-    animation: pressed
-      ? "none"
-      : hovered
-        ? "badgePulseRing 1.4s ease infinite"
-        : "logoBadge .55s cubic-bezier(.34,1.56,.64,1) .1s both, badgePulseRing 3s ease 2s infinite",
-    transform: pressed ? "scale(0.90)" : hovered ? "scale(1.06)" : "scale(1)",
-    boxShadow: pressed
-      ? "0 2px 6px rgba(37,99,235,0.3), 0 0 0 3px rgba(37,99,235,0.22)"
-      : hovered
-        ? "0 6px 22px rgba(37,99,235,0.6), 0 0 0 1px rgba(255,255,255,0.15) inset"
-        : "0 4px 16px rgba(37,99,235,0.42), 0 0 0 1px rgba(255,255,255,0.10) inset",
-    transition:"transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease",
-  };
-
   return (
-    <div style={{padding:"22px 20px 20px", borderBottom:`1px solid ${T.sidebarBorder}`}}>
-
-      {/* ── Badge + wordmark row ── */}
+    <div style={{padding:"20px 18px 16px", borderBottom:`1px solid ${T.sidebarBorder}`}}>
+      {/* Main logo row */}
       <div
-        onClick={handleClick}
+        onClick={()=>{ setPressed(true); setTimeout(()=>setPressed(false),350); }}
         onMouseEnter={()=>setHovered(true)}
         onMouseLeave={()=>setHovered(false)}
         style={{
-          display:"flex", alignItems:"center", gap:13, marginBottom:14,
+          display:"flex", alignItems:"center", gap:12, marginBottom:14,
+          animation:"logoReveal .6s cubic-bezier(.22,1,.36,1) both",
           cursor:"pointer",
-          /* slide-in on first load */
-          animation:"logoSlide .6s cubic-bezier(.22,1,.36,1) both",
+          transform: pressed ? "scale(0.95)" : hovered ? "scale(1.01)" : "scale(1)",
+          transition:"transform .22s cubic-bezier(.34,1.56,.64,1)",
         }}>
+        <ArcLogoIcon size={46} animate />
 
-        {/* ARC badge */}
-        <div style={badgeStyle}>
-          {/* shine strip — triggered by handleClick via ref */}
-          <div ref={shineRef} style={{
-            position:"absolute", top:0, left:"-80%",
-            width:"50%", height:"100%",
-            background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.30),transparent)",
-            transform:"skewX(-18deg)",
-            pointerEvents:"none",
-          }}/>
-          <span style={{
-            fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:16,
-            color:"#fff", letterSpacing:"-0.03em", position:"relative",
-            /* subtle idle float on the text only */
-            animation:"badgeFloat 4s ease-in-out 1.5s infinite",
-            display:"inline-block",
-          }}>ARC</span>
-        </div>
-
-        {/* Wordmark — staggered slide in */}
-        <div style={{
-          animation:"logoSlide .52s cubic-bezier(.22,1,.36,1) .18s both",
-          opacity:0, animationFillMode:"forwards",
-        }}>
-          <div style={{
-            fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:16,
-            color: isDark ? "#FFFFFF" : "#0F172A",
-            letterSpacing:"-0.01em", lineHeight:1.25,
-          }}>Document</div>
-          <div style={{
-            fontFamily:"'Inter',sans-serif", fontWeight:400, fontSize:15,
-            color: isDark ? "rgba(255,255,255,0.58)" : "#4B5563",
-            letterSpacing:"-0.01em", lineHeight:1.25,
-          }}>Solutions</div>
+        {/* Text stack */}
+        <div style={{animation:"logoReveal .55s cubic-bezier(.22,1,.36,1) .18s both", opacity:0, animationFillMode:"forwards"}}>
+          {/* Product name */}
+          <div style={{display:"flex", alignItems:"baseline", gap:5}}>
+            <span style={{
+              fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:17,
+              color: isDark ? "#F0F4FF" : "#0D1220",
+              letterSpacing:"-0.03em", lineHeight:1.1,
+            }}>Document</span>
+          </div>
+          <div style={{display:"flex", alignItems:"center", gap:3, marginTop:1}}>
+            <span style={{
+              fontFamily:"'Inter',sans-serif", fontWeight:400, fontSize:14.5,
+              color: isDark ? "rgba(255,255,255,0.50)" : "#5B6880",
+              letterSpacing:"-0.01em", lineHeight:1.1,
+            }}>Solutions</span>
+            {/* Tiny version pill */}
+            <span style={{
+              fontSize:10, fontWeight:700, letterSpacing:".04em",
+              background: isDark ? "rgba(99,102,241,0.22)" : "rgba(79,70,229,0.10)",
+              color: isDark ? "#A5B4FC" : "#4F46E5",
+              borderRadius:5, padding:"1px 6px", lineHeight:1.6,
+            }}>Pvt. Ltd.</span>
+          </div>
         </div>
       </div>
 
-      {/* Divider */}
-      <div style={{height:1, background:T.sidebarBorder, marginBottom:12}}/>
+      {/* Thin divider */}
+      <div style={{height:"0.5px", background:T.sidebarBorder, marginBottom:12}}/>
 
-      {/* Live indicator */}
+      {/* Live status pill */}
       <div style={{
-        display:"flex", alignItems:"center", gap:9, padding:"7px 12px",
-        background:T.sidebarLiveBg, borderRadius:8,
+        display:"flex", alignItems:"center", gap:9, padding:"7px 11px",
+        background:T.sidebarLiveBg, borderRadius:9,
         border:`1px solid ${T.sidebarLiveBorder}`,
+        transition:"all .2s",
       }}>
         <div style={{position:"relative", flexShrink:0}}>
-          <div style={{width:8,height:8,borderRadius:"50%",background:T.sidebarLiveDot}}/>
+          <div style={{
+            width:7, height:7, borderRadius:"50%",
+            background:T.sidebarLiveDot,
+            animation:"dotPulse 2s ease-in-out infinite",
+          }}/>
           <div style={{
             position:"absolute", inset:-3, borderRadius:"50%",
             border:`1.5px solid ${T.sidebarLiveDot}`,
-            animation:"liveRipple 2s ease-out infinite",
+            animation:"liveRipple 2.2s ease-out infinite",
           }}/>
         </div>
-        <span style={{fontSize:13, color:T.sidebarLiveText, fontWeight:500, letterSpacing:".01em"}}>
-          QA Monitor · Live
-        </span>
+        <span style={{fontSize:12.5, color:T.sidebarLiveText, fontWeight:600, letterSpacing:".02em"}}>QA Monitor</span>
+        <span style={{marginLeft:"auto", fontSize:11, color:T.sidebarLiveText, opacity:.7, fontWeight:500}}>LIVE</span>
       </div>
     </div>
   );
@@ -456,51 +446,85 @@ function SidebarLogo({ T }) {
 
 /* ─── SIDEBAR ─────────────────────────────────────────────────── */
 const NAV=[
-  {id:"overview",label:"Overview",       sub:"System health",    icon:"⊞"},
-  {id:"failures",label:"Failure Tracker",sub:"Failed steps",     icon:"⚠"},
-  {id:"products",label:"Products",       sub:"Per-product view", icon:"◈"},
-  {id:"runs",    label:"Run History",    sub:"Execution log",    icon:"⊙"},
-  {id:"steps",   label:"Step Analytics", sub:"Step breakdown",   icon:"≡"},
-  {id:"builds",  label:"Build Tracker",  sub:"Build diagnostics",icon:"⌗"},
+  {id:"overview", label:"Overview",        sub:"System health",     icon:<OverviewIcon/>},
+  {id:"failures", label:"Failure Tracker", sub:"Failed steps",      icon:<FailIcon/>},
+  {id:"products", label:"Products",        sub:"Per-product view",  icon:<ProductIcon/>},
+  {id:"runs",     label:"Run History",     sub:"Execution log",     icon:<RunIcon/>},
+  {id:"steps",    label:"Step Analytics",  sub:"Step breakdown",    icon:<StepIcon/>},
+  {id:"builds",   label:"Build Tracker",   sub:"Build diagnostics", icon:<BuildIcon/>},
 ];
+
+/* ─── SVG NAV ICONS ───────────────────────────────────────────── */
+function OverviewIcon() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.4"/></svg>;
+}
+function FailIcon() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/><path d="M8 6.5V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="8" cy="11" r=".75" fill="currentColor"/></svg>;
+}
+function ProductIcon() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 5L8 2L14 5V11L8 14L2 11V5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/><path d="M8 2V14M2 5L8 8L14 5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>;
+}
+function RunIcon() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M8 5V8.5L10.5 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+function StepIcon() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="2" y1="8" x2="10" y2="8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><line x1="2" y1="12" x2="12" y2="12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>;
+}
+function BuildIcon() {
+  return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="8" width="4" height="6" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="6" y="5" width="4" height="9" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="10" y="2" width="4" height="12" rx="1" stroke="currentColor" strokeWidth="1.4"/></svg>;
+}
 
 function Sidebar({ active, set, failCount, T, mobileOpen, setMobileOpen }) {
   const navBody = (
-    <nav style={{flex:1,padding:"10px 10px",display:"flex",flexDirection:"column",gap:2,overflow:"auto"}}>
-      {NAV.map(({id,label,sub,icon})=>{
+    <nav style={{flex:1, padding:"10px 10px", display:"flex", flexDirection:"column", gap:2, overflow:"auto"}}>
+      {/* Section label */}
+      <div style={{fontSize:10.5, fontWeight:700, letterSpacing:".09em", color:T.sidebarSub, padding:"4px 14px 8px", textTransform:"uppercase"}}>Navigation</div>
+
+      {NAV.map(({id,label,sub,icon},idx)=>{
         const on=active===id;
         return (
           <button key={id} onClick={()=>{set(id);setMobileOpen&&setMobileOpen(false);}} style={{
-            display:"flex",alignItems:"center",gap:12,padding:"11px 14px",
-            borderRadius:9,border:"none",cursor:"pointer",textAlign:"left",width:"100%",
-            background:on ? T.sidebarActiveBg : "transparent",
-            transition:"background .15s,transform .1s",
-            transform:"scale(1)",
+            display:"flex", alignItems:"center", gap:11, padding:"10px 13px",
+            borderRadius:10, border:"none", cursor:"pointer", textAlign:"left", width:"100%",
+            background: on ? T.sidebarActiveBg : "transparent",
+            position:"relative", overflow:"hidden",
+            transition:"background .18s, transform .1s",
+            animation:`navItemIn .35s cubic-bezier(.22,1,.36,1) ${idx*45}ms both`,
           }}
           onMouseDown={e=>e.currentTarget.style.transform="scale(0.97)"}
           onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
           onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
           >
+            {/* Active left bar */}
+            {on && <div style={{
+              position:"absolute", left:0, top:"50%", transform:"translateY(-50%)",
+              width:3, height:18, borderRadius:"0 3px 3px 0",
+              background:T.sidebarActiveBar,
+              boxShadow:`0 0 10px ${T.sidebarActiveBar}88`,
+            }}/>}
             <span style={{
-              fontSize:17,width:22,textAlign:"center",flexShrink:0,
               color: on ? T.sidebarActiveIcon : T.sidebarSub,
-              transition:"color .15s",
+              transition:"color .18s", flexShrink:0, display:"flex",
             }}>{icon}</span>
-            <div style={{flex:1,minWidth:0}}>
+            <div style={{flex:1, minWidth:0}}>
               <div style={{
-                fontSize:15,fontWeight:on ? 600 : 500,
+                fontSize:14, fontWeight: on ? 600 : 500,
                 color: on ? T.sidebarActiveText : T.sidebarText,
-                display:"flex",alignItems:"center",gap:8,
-                transition:"color .15s",letterSpacing:"-0.01em",
+                display:"flex", alignItems:"center", gap:8,
+                transition:"color .18s", letterSpacing:"-0.01em",
               }}>
                 {label}
                 {id==="failures"&&failCount>0&&(
-                  <span style={{background:"#EF4444",color:"#fff",borderRadius:99,fontSize:11,fontWeight:700,padding:"1px 7px",lineHeight:1.4,animation:"pulse 2s ease infinite"}}>{failCount}</span>
+                  <span style={{
+                    background:"#EF4444", color:"#fff", borderRadius:99,
+                    fontSize:10.5, fontWeight:700, padding:"1px 6px", lineHeight:1.5,
+                    animation:"pulse 2.2s ease infinite",
+                    boxShadow:"0 2px 8px rgba(239,68,68,0.4)",
+                  }}>{failCount}</span>
                 )}
               </div>
-              <div style={{fontSize:12,color:T.sidebarSub,marginTop:2,fontWeight:400}}>{sub}</div>
+              <div style={{fontSize:11.5, color:T.sidebarSub, marginTop:1.5, fontWeight:400, letterSpacing:".005em"}}>{sub}</div>
             </div>
-            {on&&<div style={{width:3,height:20,background:T.sidebarActiveBar,borderRadius:99,flexShrink:0,boxShadow:`0 0 8px ${T.sidebarActiveBar}88`}}/>}
           </button>
         );
       })}
@@ -508,56 +532,63 @@ function Sidebar({ active, set, failCount, T, mobileOpen, setMobileOpen }) {
   );
 
   const footer=(
-    <div style={{padding:"14px 20px",borderTop:`1px solid ${T.sidebarBorder}`}}>
-      <div style={{fontSize:12,color:T.sidebarFooter,lineHeight:2}}>
-        <div>Poll interval: 30 s</div>
-        <div>v2.2 · Internal Tool</div>
+    <div style={{padding:"14px 18px", borderTop:`1px solid ${T.sidebarBorder}`}}>
+      <div style={{
+        display:"flex", alignItems:"center", gap:8, padding:"8px 10px",
+        borderRadius:8, background:T.sidebarItem,
+      }}>
+        <div style={{
+          width:28, height:28, borderRadius:8, flexShrink:0,
+          background:"linear-gradient(135deg,#6366F1,#3730A3)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+        }}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="#fff" strokeWidth="1.4"/><path d="M6.5 4V6.5L8 8" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/></svg>
+        </div>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{fontSize:12, fontWeight:600, color:T.sidebarText}}>Auto-polling</div>
+          <div style={{fontSize:11, color:T.sidebarSub}}>Every 30 seconds</div>
+        </div>
+        <div style={{width:6, height:6, borderRadius:"50%", background:T.sidebarLiveDot, flexShrink:0, animation:"dotPulse 2s ease-in-out infinite"}}/>
       </div>
     </div>
   );
 
   return (
     <>
-      {/* Full sidebar — hidden on mobile */}
+      {/* Full sidebar */}
       <aside className="sidebar-full" style={{
-        width:232,flexShrink:0,background:T.sidebarBg,
+        width:236, flexShrink:0, background:T.sidebarBg,
         borderRight:`1px solid ${T.sidebarBorder}`,
-        display:"flex",flexDirection:"column",
-        height:"100vh",position:"sticky",top:0,zIndex:30,
+        display:"flex", flexDirection:"column",
+        height:"100vh", position:"sticky", top:0, zIndex:30,
       }}>
         <SidebarLogo T={T}/>
         {navBody}
         {footer}
       </aside>
 
-      {/* Rail sidebar — shown on mobile */}
+      {/* Rail sidebar — mobile */}
       <aside className="sidebar-rail" style={{
-        width:56,flexShrink:0,background:T.sidebarBg,
+        width:56, flexShrink:0, background:T.sidebarBg,
         borderRight:`1px solid ${T.sidebarBorder}`,
-        display:"none",flexDirection:"column",alignItems:"center",
-        height:"100vh",position:"sticky",top:0,zIndex:30,paddingTop:14,gap:2,
+        display:"none", flexDirection:"column", alignItems:"center",
+        height:"100vh", position:"sticky", top:0, zIndex:30, paddingTop:14, gap:2,
       }}>
-        <div style={{
-          width:36,height:36,borderRadius:8,
-          background:"linear-gradient(135deg,#2563EB,#1E40AF)",
-          display:"flex",alignItems:"center",justifyContent:"center",
-          marginBottom:12,boxShadow:"0 3px 12px rgba(37,99,235,0.5)",
-        }}>
-          <span style={{fontFamily:"Inter",fontWeight:800,fontSize:12,color:"#fff"}}>ARC</span>
-        </div>
+        <ArcLogoIcon size={34}/>
+        <div style={{height:8}}/>
         {NAV.map(({id,label,icon})=>{
           const on=active===id;
           return (
             <button key={id} title={label} onClick={()=>set(id)} style={{
-              width:40,height:40,borderRadius:8,border:"none",cursor:"pointer",
-              background:on?"rgba(59,130,246,0.2)":"transparent",
+              width:40, height:40, borderRadius:9, border:"none", cursor:"pointer",
+              background:on?T.sidebarActiveBg:"transparent",
               color:on?T.sidebarActiveIcon:T.sidebarSub,
-              fontSize:17,display:"flex",alignItems:"center",justifyContent:"center",
-              transition:"all .15s",position:"relative",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              transition:"all .16s", position:"relative",
             }}>
               {icon}
               {id==="failures"&&failCount>0&&(
-                <span style={{position:"absolute",top:4,right:4,width:8,height:8,background:"#EF4444",borderRadius:"50%"}}/>
+                <span style={{position:"absolute",top:4,right:4,width:7,height:7,background:"#EF4444",borderRadius:"50%"}}/>
               )}
             </button>
           );
@@ -568,179 +599,108 @@ function Sidebar({ active, set, failCount, T, mobileOpen, setMobileOpen }) {
 }
 
 /* ─── TOPBAR ──────────────────────────────────────────────────── */
-/* ─── TIME PRESET HELPERS ────────────────────────────────────── */
-const TIME_PRESETS = [
-  { id:"24h",  label:"24 hrs" },
-  { id:"48h",  label:"48 hrs" },
-  { id:"3d",   label:"3 days" },
-  { id:"7d",   label:"7 days" },
-  { id:"1m",   label:"1 month" },
-  { id:"custom",label:"Custom" },
-];
-
-function presetToFromTo(id) {
-  const now  = new Date();
-  const toStr = now.toISOString().slice(0,10);
-  const map = { "24h":1, "48h":2, "3d":3, "7d":7, "1m":30 };
-  if (!map[id]) return { from:"", to:"" };
-  const from = new Date(now);
-  from.setDate(from.getDate() - map[id]);
-  return { from: from.toISOString().slice(0,10), to: toStr };
-}
-
 function Topbar({ lastUpdated, loading, onRefresh, filters, setFilters, projects, clusters, T, isDark, setDark }) {
-  const activePreset = filters._preset || null;
-  const showCustom   = activePreset === "custom" || (!activePreset && (filters.from || filters.to));
-  const hasFilter    = Object.entries(filters).some(([k,v]) => v && k !== "_preset");
-
-  const applyPreset = (id) => {
-    if (id === "custom") {
-      setFilters(f => ({ ...f, _preset:"custom", from:"", to:"" }));
-      return;
-    }
-    const { from, to } = presetToFromTo(id);
-    setFilters(f => ({ ...f, _preset:id, from, to }));
-  };
-
-  /* pill group background — a recessed "tray" feel */
-  const pillTray = {
-    display:"flex", alignItems:"center", gap:2,
-    background: T.mode === "dark" ? "rgba(255,255,255,0.05)" : T.cardBg2,
-    border: `1px solid ${T.border}`,
-    borderRadius: 10, padding:"3px",
-  };
-
-  const pill = (id, label) => {
-    const on = id === "custom" ? showCustom : activePreset === id;
-    return (
-      <button key={id} onClick={()=>applyPreset(id)} style={{
-        padding:"5px 13px", borderRadius:7,
-        border: "none",
-        background: on ? T.cardBg : "transparent",
-        color: on ? T.accent : T.t2,
-        fontSize:13, fontWeight: on ? 600 : 400,
-        cursor:"pointer", transition:"all .15s",
-        fontFamily:"'Inter',sans-serif", whiteSpace:"nowrap",
-        boxShadow: on ? T.shadow : "none",
-        lineHeight:1.4,
-      }}>
-        {label}
-      </button>
-    );
-  };
+  const hasFilters = Object.values(filters).some(Boolean);
 
   return (
     <header style={{
-      borderBottom:`1px solid ${T.border}`,
-      background:`${T.cardBg}F8`, backdropFilter:"blur(14px)",
-      position:"sticky", top:0, zIndex:10, flexShrink:0,
+      minHeight:60, borderBottom:`1px solid ${T.border}`,
+      display:"flex", alignItems:"center", padding:"0 22px", gap:12,
+      background: isDark ? `rgba(8,12,20,0.92)` : `rgba(255,255,255,0.92)`,
+      backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+      position:"sticky", top:0, zIndex:10, flexShrink:0, flexWrap:"wrap",
+      animation:"topbarIn .4s cubic-bezier(.22,1,.36,1) both",
     }}>
 
-      {/* ── Single unified filter row ─────────────────────────────── */}
-      <div style={{
-        display:"flex", alignItems:"center",
-        padding:"10px 20px", gap:10, flexWrap:"wrap",
+      {/* Filter strip */}
+      <div className="topbar-filters" style={{
+        flex:1, display:"flex", alignItems:"center", gap:7,
+        flexWrap:"nowrap", overflow:"hidden", minWidth:0, padding:"7px 0",
       }}>
-
-        {/* LEFT: dropdowns group */}
+        {/* Filter icon */}
         <div style={{
-          display:"flex", alignItems:"center", gap:6,
-          flexWrap:"wrap", flex:1, minWidth:0,
+          width:32, height:32, borderRadius:8, flexShrink:0,
+          background:hasFilters?T.accentBg:T.cardBg2,
+          border:`1px solid ${hasFilters?T.accent+"44":T.border}`,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          transition:"all .2s",
         }}>
-          {[
-            ["project",     "Product",    projects.map(p=>({v:p,l:p}))],
-            ["cluster",     "Cluster",    clusters.map(c=>({v:c,l:c}))],
-            ["script_type", "Script",     [{v:"5min",l:"5 min"},{v:"30min",l:"30 min"}]],
-            ["status",      "Status",     [{v:"failed",l:"Failed"},{v:"passed",l:"Passed"}]],
-          ].map(([key,ph,opts])=>(
-            <select key={key} value={filters[key]||""}
-              onChange={e=>setFilters(f=>({...f,[key]:e.target.value}))}
-              style={{
-                fontSize:13, padding:"6px 10px",
-                minWidth:0, width:"auto", flex:"0 0 auto",
-                maxWidth:150,
-              }}>
-              <option value="">{ph}</option>
-              {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
-            </select>
-          ))}
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1.5 3.5H12.5M3.5 7H10.5M5.5 10.5H8.5" stroke={hasFilters?T.accent:T.t3} strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
         </div>
 
-        {/* DIVIDER */}
-        <div style={{width:1, height:28, background:T.border, flexShrink:0}} className="hide-mobile"/>
-
-        {/* CENTER: time range pill tray */}
-        <div style={{display:"flex", alignItems:"center", gap:8, flexShrink:0, flexWrap:"wrap"}}>
-          <span style={{fontSize:12, color:T.t3, fontWeight:500, whiteSpace:"nowrap", letterSpacing:"0.01em"}}>
-            Range
-          </span>
-          <div style={pillTray}>
-            {TIME_PRESETS.filter(p => p.id !== "custom").map(p => pill(p.id, p.label))}
-          </div>
-          {/* Custom as separate outlined button */}
-          <button onClick={()=>applyPreset("custom")} style={{
-            padding:"5px 13px", borderRadius:7,
-            border:`1px solid ${showCustom ? T.accent : T.border}`,
-            background: showCustom ? T.accentBg : "transparent",
-            color: showCustom ? T.accent : T.t2,
-            fontSize:13, fontWeight: showCustom ? 600 : 400,
-            cursor:"pointer", transition:"all .15s",
-            fontFamily:"'Inter',sans-serif", whiteSpace:"nowrap",
-          }}>
-            ⊕ Custom
-          </button>
-
-          {/* Custom date pickers — inline, compact */}
-          {showCustom && (
-            <div style={{
-              display:"flex", alignItems:"center", gap:6,
-              animation:"fadeIn .18s ease both",
-              background: T.mode === "dark" ? "rgba(255,255,255,0.04)" : T.cardBg2,
-              border:`1px solid ${T.border}`,
-              borderRadius:8, padding:"4px 10px",
+        {[
+          ["project",     "All products",  projects.map(p=>({v:p,l:p}))],
+          ["cluster",     "All clusters",  clusters.map(c=>({v:c,l:c}))],
+          ["script_type", "All scripts",   [{v:"5min",l:"5 min"},{v:"30min",l:"30 min"}]],
+          ["status",      "All statuses",  [{v:"failed",l:"Failures only"},{v:"passed",l:"Passed only"}]],
+        ].map(([key,ph,opts])=>(
+          <select
+            key={key}
+            value={filters[key]||""}
+            onChange={e=>setFilters(f=>({...f,[key]:e.target.value}))}
+            style={{
+              minWidth:130, flex:"0 0 auto",
+              background: filters[key] ? (isDark?"rgba(99,102,241,0.14)":"rgba(79,70,229,0.07)") : T.inputBg,
+              borderColor: filters[key] ? T.accent+"66" : T.border,
+              color: filters[key] ? T.accent : T.t1,
+              fontWeight: filters[key] ? 500 : 400,
             }}>
-              <input type="date"
-                value={filters.from||""}
-                onChange={e=>setFilters(f=>({...f,from:e.target.value,_preset:"custom"}))}
-                style={{width:130, fontSize:13, padding:"4px 8px", border:"none", background:"transparent", outline:"none", color:T.t0}}
-              />
-              <span style={{color:T.t3, fontSize:12, flexShrink:0}}>→</span>
-              <input type="date"
-                value={filters.to||""}
-                onChange={e=>setFilters(f=>({...f,to:e.target.value,_preset:"custom"}))}
-                style={{width:130, fontSize:13, padding:"4px 8px", border:"none", background:"transparent", outline:"none", color:T.t0}}
-              />
-            </div>
-          )}
-        </div>
+            <option value="">{ph}</option>
+            {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+          </select>
+        ))}
 
-        {/* DIVIDER */}
-        <div style={{width:1, height:28, background:T.border, flexShrink:0}} className="hide-mobile"/>
+        <input className="hide-mobile" type="date" value={filters.from||""} onChange={e=>setFilters(f=>({...f,from:e.target.value}))} style={{width:138,flex:"0 0 auto"}}/>
+        <input className="hide-mobile" type="date" value={filters.to||""}   onChange={e=>setFilters(f=>({...f,to:e.target.value}))}   style={{width:138,flex:"0 0 auto"}}/>
 
-        {/* RIGHT: actions */}
-        <div style={{display:"flex", alignItems:"center", gap:8, flexShrink:0}}>
-          {hasFilter && (
-            <button className="btn ghost" onClick={()=>setFilters({})}
-              style={{fontSize:13, padding:"6px 12px", color:T.danger, borderColor:`${T.danger}40`}}>
-              Clear ×
-            </button>
-          )}
-          {lastUpdated && (
-            <span className="hide-mobile" style={{fontSize:12, color:T.t3, whiteSpace:"nowrap"}}>
+        {hasFilters&&(
+          <button className="btn ghost" onClick={()=>setFilters({})} style={{
+            fontSize:13, flexShrink:0, color:T.danger,
+            border:`1px solid ${T.danger}33`,
+            background:T.dangerBg,
+          }}>Clear ×</button>
+        )}
+      </div>
+
+      {/* Right actions */}
+      <div style={{display:"flex", alignItems:"center", gap:8, flexShrink:0}}>
+        {lastUpdated&&(
+          <div className="hide-mobile" style={{
+            display:"flex", alignItems:"center", gap:6,
+            padding:"5px 10px", borderRadius:7,
+            background:T.cardBg2, border:`1px solid ${T.border}`,
+          }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <circle cx="6" cy="6" r="5" stroke={T.t3} strokeWidth="1.3"/>
+              <path d="M6 3.5V6L7.5 7.5" stroke={T.t3} strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+            <span style={{fontSize:12.5, color:T.t3, whiteSpace:"nowrap", fontVariantNumeric:"tabular-nums"}}>
               {fmtTime(lastUpdated)}
             </span>
-          )}
-          <button className="btn ghost" onClick={()=>setDark(d=>!d)}
-            title="Toggle theme" style={{padding:"7px 9px", fontSize:16, flexShrink:0}}>
-            {isDark ? "☀" : "◑"}
-          </button>
-          <button className="btn primary" onClick={onRefresh} style={{flexShrink:0}}>
-            <span style={loading?{display:"inline-block",animation:"spin .7s linear infinite"}:{}}
-              aria-hidden="true">↻</span>
-            Refresh
-          </button>
-        </div>
+          </div>
+        )}
 
+        {/* Theme toggle */}
+        <button className="btn ghost" onClick={()=>setDark(d=>!d)} title="Toggle theme" style={{
+          padding:"8px 10px", fontSize:16,
+          border:`1px solid ${T.border}`,
+          borderRadius:9,
+        }}>
+          {isDark
+            ? <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.5"/><path d="M8 1V2.5M8 13.5V15M1 8H2.5M13.5 8H15M3.05 3.05L4.11 4.11M11.89 11.89L12.95 12.95M3.05 12.95L4.11 11.89M11.89 4.11L12.95 3.05" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+            : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 9.5A6 6 0 016.5 2.5a6 6 0 100 11 6 6 0 007-4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+          }
+        </button>
+
+        {/* Refresh */}
+        <button className="btn primary" onClick={onRefresh} style={{gap:6}}>
+          <span style={loading?{display:"inline-block",animation:"spin .65s linear infinite"}:{}}
+            dangerouslySetInnerHTML={{__html:`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12.5 7A5.5 5.5 0 012.5 7" stroke="white" strokeWidth="1.6" strokeLinecap="round"/><path d="M10 2.5L12.5 5 15 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>`}}
+          />
+          Refresh
+        </button>
       </div>
     </header>
   );
@@ -750,10 +710,14 @@ function Topbar({ lastUpdated, loading, onRefresh, filters, setFilters, projects
 function Section({ title, sub, children, T, action }) {
   return (
     <div className="card">
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:`1px solid ${T.border}`,background:T.cardBg2,gap:12,flexWrap:"wrap"}}>
+      <div style={{
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"16px 22px", borderBottom:`1px solid ${T.border}`,
+        background:T.cardBg2, gap:12, flexWrap:"wrap",
+      }}>
         <div>
-          <div style={{fontSize:16,fontWeight:700,color:T.t0}}>{title}</div>
-          {sub&&<div style={{fontSize:13,color:T.t3,marginTop:2}}>{sub}</div>}
+          <div style={{fontSize:15.5, fontWeight:700, color:T.t0, letterSpacing:"-0.01em"}}>{title}</div>
+          {sub&&<div style={{fontSize:13, color:T.t3, marginTop:2}}>{sub}</div>}
         </div>
         {action}
       </div>
@@ -765,18 +729,38 @@ function Section({ title, sub, children, T, action }) {
 /* ─── KPI CARD ────────────────────────────────────────────────── */
 function KpiCard({ label, value, sub, color, spark, delay=0, dec=0, suffix="", T }) {
   return (
-    <div className="card fu" style={{padding:"20px 22px",animationDelay:`${delay}ms`,borderTop:`2.5px solid ${color}`}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-        <div style={{width:38,height:38,borderRadius:9,background:`${color}18`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <div style={{width:12,height:12,borderRadius:"50%",background:color}}/>
+    <div className="card fu" style={{
+      padding:"20px 22px", animationDelay:`${delay}ms`,
+      borderTop:`2.5px solid ${color}`,
+      position:"relative", overflow:"hidden",
+    }}>
+      {/* Subtle color wash */}
+      <div style={{
+        position:"absolute", top:0, right:0, width:80, height:80,
+        background:`radial-gradient(circle at top right, ${color}12, transparent 70%)`,
+        pointerEvents:"none",
+      }}/>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:14}}>
+        <div style={{
+          width:36, height:36, borderRadius:9,
+          background:`${color}18`,
+          display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
+          border:`1px solid ${color}25`,
+        }}>
+          <div style={{width:10, height:10, borderRadius:"50%", background:color, boxShadow:`0 0 6px ${color}88`}}/>
         </div>
         {spark&&<Spark data={spark} color={color}/>}
       </div>
-      <div style={{fontSize:32,fontWeight:700,color:T.t0,lineHeight:1,letterSpacing:"-0.03em",animation:"countUp .5s ease both",animationDelay:`${delay+120}ms`,fontVariantNumeric:"tabular-nums"}}>
+      <div style={{
+        fontSize:32, fontWeight:700, color:T.t0, lineHeight:1,
+        letterSpacing:"-0.04em",
+        animation:"countUp .5s ease both", animationDelay:`${delay+120}ms`,
+        fontVariantNumeric:"tabular-nums",
+      }}>
         <span style={{color}}><Counter to={value} dec={dec} suffix={suffix}/></span>
       </div>
-      <div style={{fontSize:14,fontWeight:600,color:T.t1,marginTop:7}}>{label}</div>
-      {sub&&<div style={{fontSize:13,color:T.t2,marginTop:2}}>{sub}</div>}
+      <div style={{fontSize:14, fontWeight:600, color:T.t1, marginTop:7}}>{label}</div>
+      {sub&&<div style={{fontSize:12.5, color:T.t2, marginTop:2}}>{sub}</div>}
     </div>
   );
 }
@@ -814,7 +798,7 @@ function ProductGrid({ results, T }) {
                 {l:"Failed",    v:d.failRuns,  c:d.failRuns>0?T.danger:T.t3},
                 {l:"Step fails",v:d.failSteps, c:d.failSteps>0?T.warn:T.t3},
               ].map(x=>(
-                <div key={x.l} style={{background:T.cardBg2,borderRadius:8,padding:"10px"}}>
+                <div key={x.l} style={{background:T.cardBg2,borderRadius:9,padding:"10px",border:`1px solid ${T.border}`}}>
                   <div style={{fontSize:22,fontWeight:700,color:x.c,lineHeight:1,letterSpacing:"-0.02em"}}>{x.v}</div>
                   <div style={{fontSize:11,color:T.t3,marginTop:3,fontWeight:500}}>{x.l}</div>
                 </div>
@@ -916,7 +900,7 @@ function RunHistory({ results, T }) {
                         <div style={{display:"flex",flexDirection:"column",gap:5}}>
                           {r.steps?.map((s,si)=>(
                             <div key={si} style={{
-                              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",borderRadius:8,
+                              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",borderRadius:9,
                               background:!s.is_success?T.dangerBg:T.cardBg,
                               border:`1px solid ${!s.is_success?T.danger+"40":T.border}`,
                               animation:!s.is_success?"borderPop 3s ease infinite":undefined,
@@ -1080,6 +1064,32 @@ const PAGES={
   builds:  {title:"Build Tracker",   sub:"Trace failures to specific build numbers"},
 };
 
+/* ─── PAGE HEADER ─────────────────────────────────────────────── */
+function PageHeader({ page, T }) {
+  const meta = PAGES[page];
+  const iconMap = {
+    overview: <OverviewIcon/>, failures: <FailIcon/>, products: <ProductIcon/>,
+    runs: <RunIcon/>, steps: <StepIcon/>, builds: <BuildIcon/>
+  };
+  return (
+    <div className="fu" style={{marginBottom:24,display:"flex",alignItems:"center",gap:14}}>
+      <div style={{
+        width:44,height:44,borderRadius:12,flexShrink:0,
+        background:T.accentBg,
+        border:`1px solid ${T.accent}33`,
+        display:"flex",alignItems:"center",justifyContent:"center",
+        color:T.accent,
+      }}>
+        {iconMap[page]}
+      </div>
+      <div>
+        <h1 style={{fontSize:22,fontWeight:700,color:T.t0,letterSpacing:"-0.025em",lineHeight:1.2}}>{meta.title}</h1>
+        <p style={{fontSize:13.5,color:T.t2,marginTop:3}}>{meta.sub}</p>
+      </div>
+    </div>
+  );
+}
+
 /* ─── APP ─────────────────────────────────────────────────────── */
 export default function App() {
   const [page,setPage]         = useState("overview");
@@ -1099,10 +1109,7 @@ export default function App() {
 
   const buildQS=useCallback((extra={})=>{
     const p=new URLSearchParams();
-    const SKIP=new Set(["_preset"]); // UI-only keys — never sent to API
-    Object.entries({...filters,...extra}).forEach(([k,v])=>{
-      if(v && !SKIP.has(k)) p.set(k,v);
-    });
+    Object.entries({...filters,...extra}).forEach(([k,v])=>{if(v)p.set(k,v);});
     return p.toString();
   },[filters]);
 
@@ -1125,7 +1132,6 @@ export default function App() {
   useEffect(()=>{ fetchData(); const iv=setInterval(fetchData,POLL_MS); return()=>clearInterval(iv); },[fetchData]);
 
   const failCount=data.results.filter(r=>r.has_failure).length;
-  const meta=PAGES[page];
 
   return (
     <>
@@ -1140,17 +1146,10 @@ export default function App() {
             T={T} isDark={isDark} setDark={setDark}
           />
           <main className="main-content" style={{flex:1,padding:"28px 28px",overflow:"auto"}}>
+            <PageHeader page={page} T={T}/>
 
-            {/* Page header */}
-            <div className="fu" style={{marginBottom:24}}>
-              <h1 style={{fontSize:24,fontWeight:700,color:T.t0,letterSpacing:"-0.02em"}}>{meta.title}</h1>
-              <p style={{fontSize:14,color:T.t2,marginTop:4}}>{meta.sub}</p>
-            </div>
-
-            {/* Wake-up banner */}
             {waking&&<WakeBanner T={T}/>}
 
-            {/* Error */}
             {error&&!waking&&(
               <div className="card" style={{padding:"16px 20px",marginBottom:20,border:`1px solid ${T.danger}44`,background:T.dangerBg,display:"flex",alignItems:"flex-start",gap:12}}>
                 <span style={{fontSize:20,flexShrink:0}}>⚠</span>
@@ -1163,7 +1162,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Skeleton loader */}
             {loading?(
               <div style={{display:"flex",flexDirection:"column",gap:16}}>
                 <div className="kpi-grid" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(195px,1fr))",gap:14}}>
@@ -1192,4 +1190,4 @@ export default function App() {
       </div>
     </>
   );
-}   
+}
