@@ -1,12 +1,15 @@
 // server/models/Result.js
 const mongoose = require('mongoose');
 
+// server/models/Result.js
 const StepSchema = new mongoose.Schema({
   step:          { type: String, required: true, trim: true },
   status_code:   { type: String, required: true },
   response_time: { type: Number, default: 0 },
   is_success:    { type: Boolean, default: true },
   timestamp:     { type: Date, default: Date.now },
+  response_body: { type: String, default: "" },   // ← NEW — optional API response
+  error_msg:     { type: String, default: "" },   // ← NEW — error detail for AI scripts
 }, { _id: false });
 
 const ResultSchema = new mongoose.Schema(

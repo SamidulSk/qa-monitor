@@ -30,13 +30,14 @@ router.post('/', auth, async (req, res) => {
           error: `Step at index ${i} is missing required fields: step, status_code`,
         });
       }
-      // Auto-derive is_success from status_code if not provided
       if (s.is_success === undefined || s.is_success === null) {
         s.is_success = String(s.status_code).startsWith('2');
       }
       s.response_time = parseFloat(s.response_time) || 0;
+      // Sanitise new optional fields — trim strings, never crash if missing
+      s.response_body = s.response_body ? String(s.response_body).slice(0, 5000) : "";
+      s.error_msg = s.error_msg ? String(s.error_msg).slice(0, 1000) : "";
     }
-
     const result = new Result({
       project,
       cluster: cluster || 'default',
