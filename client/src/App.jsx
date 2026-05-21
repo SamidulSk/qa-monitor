@@ -1076,21 +1076,49 @@ function Overview({ summary, results, T }) {
 
 
 /* ─── ARC AI PAGE ─────────────────────────────────────────────── */
-function ArcAIPage({ results, T }) {
+function ArcAIPage({ T }) {
   const [expanded, setExpanded] = useState(null);
-  const [tab, setTab]           = useState("runs");  // "runs" | "errors"
+  const [tab, setTab]           = useState("runs");
   const [page, setPage]         = useState(1);
+  const [aiResults, setAiResults] = useState([]);
+  const [aiLoading, setAiLoading] = useState(true);
+  const [aiError,   setAiError]   = useState(null);
   const PER = 15;
 
-  /* Filter only ARC AI runs — project name contains "ARC AI" or script_type "ai"
-     Falls back to showing all runs that have response_body / error_msg on any step */
-  const aiRuns = useMemo(() => {
-    return results.filter(r =>
-      r.project?.toLowerCase().includes("arc ai") ||
-      r.script_type === "ai" ||
-      r.steps?.some(s => s.response_body || s.error_msg)
-    );
-  }, [results]);
+  /* Fetch ARC AI runs independently — NOT affected by topbar filters.
+     Queries with project filter "ARC AI" directly so we always get full data. */
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setAiLoading(true);
+        setAiError(null);
+        const params = new URLSearchParams({ limit: 500 });
+        const res = await apiFetch(
+          `${API_BASE}/api/results?${params}`,
+          { headers: { Authorization: `Bearer ${TOKEN}` } }
+        );
+        const data = await res.json();
+        const all = data.results || [];
+        // Filter client-side: project contains "arc ai" OR script_type "ai"
+        // OR any step has response_body / error_msg
+        const filtered = all.filter(r =>
+          r.project?.toLowerCase().includes("arc ai") ||
+          r.script_type === "ai" ||
+          r.steps?.some(s => s.response_body || s.error_msg)
+        );
+        setAiResults(filtered);
+      } catch(e) {
+        setAiError(e.message);
+      } finally {
+        setAiLoading(false);
+      }
+    };
+    load();
+    const iv = setInterval(load, POLL_MS);
+    return () => clearInterval(iv);
+  }, []);
+
+  const aiRuns = aiResults;
 
   /* All steps that have an error_msg across all AI runs */
   const errorSteps = useMemo(() => {
@@ -1138,6 +1166,21 @@ function ArcAIPage({ results, T }) {
     purple:    "#8B5CF6",
     purpleBg:  T.mode === "dark" ? "rgba(139,92,246,0.12)" : "#F5F3FF",
   };
+
+  if (aiLoading) return (
+    <div style={{textAlign:"center",padding:"80px 20px",color:T.t3}}>
+      <div style={{width:32,height:32,border:`2px solid ${T.border}`,borderTop:`2px solid #6366F1`,
+        borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 14px"}}/>
+      <div style={{fontSize:14,fontWeight:500}}>Loading ARC AI runs...</div>
+    </div>
+  );
+
+  if (aiError) return (
+    <div className="card" style={{padding:"24px",border:`1px solid ${T.danger}40`,background:T.dangerBg}}>
+      <div style={{fontSize:15,fontWeight:600,color:T.danger,marginBottom:4}}>Failed to load ARC AI data</div>
+      <div style={{fontSize:13,color:T.t2}}>{aiError}</div>
+    </div>
+  );
 
   if (totalRuns === 0) return (
     <div className="card" style={{padding:"60px 20px",textAlign:"center"}}>
@@ -1534,7 +1577,7 @@ export default function App() {
                 {page==="runs"&&<Section title="Execution Log" sub={`${data.results.length} total runs`} T={T}><RunHistory results={data.results} T={T}/></Section>}
                 {page==="steps"&&<Section title="Step-Level Analytics" sub="Sorted by failure count" T={T}><StepAnalytics summary={data.summary} T={T}/></Section>}
                 {page==="builds"&&<div className="fu"><BuildTracker results={data.results} T={T}/></div>}
-                {page==="arcai"&&<div className="fu"><ArcAIPage results={data.results} T={T}/></div>}
+                {page==="arcai"&&<div className="fu"><ArcAIPage T={T}/></div>}
               </>
             )}
           </main>
