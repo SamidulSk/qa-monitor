@@ -462,6 +462,7 @@ const NAV=[
   {id:"runs",    label:"Run History",    sub:"Execution log",    icon:"⊙"},
   {id:"steps",   label:"Step Analytics", sub:"Step breakdown",   icon:"≡"},
   {id:"builds",  label:"Build Tracker",  sub:"Build diagnostics",icon:"⌗"},
+  {id:"arcai",   label:"ARC AI",         sub:"AI script monitor", icon:"⬡", ai:true},
 ];
 
 function Sidebar({ active, set, failCount, T, mobileOpen, setMobileOpen }) {
@@ -496,6 +497,9 @@ function Sidebar({ active, set, failCount, T, mobileOpen, setMobileOpen }) {
                 {label}
                 {id==="failures"&&failCount>0&&(
                   <span style={{background:"#EF4444",color:"#fff",borderRadius:99,fontSize:11,fontWeight:700,padding:"1px 7px",lineHeight:1.4,animation:"pulse 2s ease infinite"}}>{failCount}</span>
+                )}
+                {NAV.find(n=>n.id===id)?.ai&&(
+                  <span style={{background:"linear-gradient(90deg,#6366F1,#8B5CF6)",color:"#fff",borderRadius:4,fontSize:9,fontWeight:700,padding:"1px 5px",letterSpacing:"0.04em"}}>AI</span>
                 )}
               </div>
               <div style={{fontSize:12,color:T.sidebarSub,marginTop:2,fontWeight:400}}>{sub}</div>
@@ -1070,6 +1074,350 @@ function Overview({ summary, results, T }) {
   );
 }
 
+
+/* ─── ARC AI PAGE ─────────────────────────────────────────────── */
+function ArcAIPage({ results, T }) {
+  const [expanded, setExpanded] = useState(null);
+  const [tab, setTab]           = useState("runs");  // "runs" | "errors"
+  const [page, setPage]         = useState(1);
+  const PER = 15;
+
+  /* Filter only ARC AI runs — project name contains "ARC AI" or script_type "ai"
+     Falls back to showing all runs that have response_body / error_msg on any step */
+  const aiRuns = useMemo(() => {
+    return results.filter(r =>
+      r.project?.toLowerCase().includes("arc ai") ||
+      r.script_type === "ai" ||
+      r.steps?.some(s => s.response_body || s.error_msg)
+    );
+  }, [results]);
+
+  /* All steps that have an error_msg across all AI runs */
+  const errorSteps = useMemo(() => {
+    const list = [];
+    aiRuns.forEach(r => {
+      r.steps?.forEach(s => {
+        if (s.error_msg) {
+          list.push({
+            run_id:     r._id,
+            project:    r.project,
+            build:      r.build_number,
+            cluster:    r.cluster,
+            run_ts:     r.timestamp,
+            step:       s.step,
+            status:     s.status_code,
+            success:    s.is_success,
+            resp_time:  s.response_time,
+            error_msg:  s.error_msg,
+            resp_body:  s.response_body,
+            step_ts:    s.timestamp,
+          });
+        }
+      });
+    });
+    return list.sort((a, b) => new Date(b.run_ts) - new Date(a.run_ts));
+  }, [aiRuns]);
+
+  /* KPI numbers */
+  const totalRuns   = aiRuns.length;
+  const failedRuns  = aiRuns.filter(r => r.has_failure).length;
+  const totalErrors = errorSteps.length;
+  const uniqueStepsWithErr = [...new Set(errorSteps.map(e => e.step))].length;
+
+  const pages = Math.ceil(
+    (tab === "runs" ? aiRuns : errorSteps).length / PER
+  );
+  const visibleRuns   = aiRuns.slice((page-1)*PER, page*PER);
+  const visibleErrors = errorSteps.slice((page-1)*PER, page*PER);
+
+  /* ── purple/indigo accent for AI section ── */
+  const AI = {
+    accent:    "#6366F1",
+    accentBg:  T.mode === "dark" ? "rgba(99,102,241,0.12)" : "#EEF2FF",
+    accentBdr: T.mode === "dark" ? "rgba(99,102,241,0.30)" : "rgba(99,102,241,0.25)",
+    purple:    "#8B5CF6",
+    purpleBg:  T.mode === "dark" ? "rgba(139,92,246,0.12)" : "#F5F3FF",
+  };
+
+  if (totalRuns === 0) return (
+    <div className="card" style={{padding:"60px 20px",textAlign:"center"}}>
+      <div style={{fontSize:40,marginBottom:12}}>⬡</div>
+      <div style={{fontSize:17,fontWeight:600,color:T.t0,marginBottom:6}}>No ARC AI runs yet</div>
+      <div style={{fontSize:14,color:T.t2,maxWidth:420,margin:"0 auto",lineHeight:1.6}}>
+        ARC AI scripts should push data with <code style={{background:T.cardBg2,padding:"1px 6px",borderRadius:4,fontSize:13}}>response_body</code> and <code style={{background:T.cardBg2,padding:"1px 6px",borderRadius:4,fontSize:13}}>error_msg</code> fields on each step.
+        Once data arrives it will appear here automatically.
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+
+      {/* ── KPI row ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12}}>
+        {[
+          {label:"AI Runs",          value:totalRuns,          color:AI.accent},
+          {label:"Failed Runs",      value:failedRuns,         color:T.danger},
+          {label:"Steps with Errors",value:uniqueStepsWithErr, color:AI.purple},
+          {label:"Total Error Logs", value:totalErrors,        color:T.warn},
+        ].map((k,i) => (
+          <div key={k.label} className="card fu" style={{
+            padding:"18px 20px",animationDelay:`${i*50}ms`,
+            borderTop:`2.5px solid ${k.color}`,
+          }}>
+            <div style={{fontSize:30,fontWeight:700,color:k.color,letterSpacing:"-0.03em",lineHeight:1}}>
+              <Counter to={k.value}/>
+            </div>
+            <div style={{fontSize:13,fontWeight:600,color:T.t1,marginTop:6}}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Tab switcher ── */}
+      <div style={{display:"flex",alignItems:"center",gap:0,
+        background:T.cardBg2,border:`1px solid ${T.border}`,borderRadius:10,
+        padding:3,width:"fit-content",
+      }}>
+        {[
+          {id:"runs",   label:"Run History"},
+          {id:"errors", label:"Error Logs"},
+        ].map(t => (
+          <button key={t.id} onClick={()=>{setTab(t.id);setPage(1);}} style={{
+            padding:"7px 20px",borderRadius:7,border:"none",
+            background: tab===t.id ? T.cardBg : "transparent",
+            color: tab===t.id ? AI.accent : T.t2,
+            fontWeight: tab===t.id ? 600 : 400,
+            fontSize:14,cursor:"pointer",
+            fontFamily:"'Inter',sans-serif",
+            boxShadow: tab===t.id ? T.shadow : "none",
+            transition:"all .15s",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ── RUN HISTORY tab ── */}
+      {tab === "runs" && (
+        <div className="card" style={{overflow:"hidden"}}>
+          <div style={{padding:"14px 20px",borderBottom:`1px solid ${T.border}`,background:T.cardBg2,
+            display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:AI.accent,flexShrink:0}}/>
+            <span style={{fontSize:15,fontWeight:700,color:T.t0}}>ARC AI Run History</span>
+            <span className="badge" style={{background:AI.accentBg,color:AI.accent,border:`1px solid ${AI.accentBdr}`,marginLeft:"auto"}}>
+              {aiRuns.length} runs
+            </span>
+          </div>
+          <div style={{overflowX:"auto"}}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{width:24}}/>
+                  <th>Timestamp</th>
+                  <th>Project</th>
+                  <th>Cluster</th>
+                  <th>Build</th>
+                  <th>Steps</th>
+                  <th>Duration</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRuns.map(r => {
+                  const open = expanded === r._id;
+                  return [
+                    <tr key={r._id} onClick={()=>setExpanded(open?null:r._id)}
+                      style={{cursor:"pointer",background:open?AI.accentBg:undefined}}>
+                      <td style={{textAlign:"center",color:T.t3,fontSize:12}}>
+                        <span style={{display:"inline-block",transform:open?"rotate(90deg)":"none",transition:"transform .2s"}}>▶</span>
+                      </td>
+                      <td style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:13,color:T.t2,whiteSpace:"nowrap"}}>{fmtTime(r.timestamp)}</td>
+                      <td style={{fontWeight:600,color:T.t0,fontSize:14}}>{r.project}</td>
+                      <td><span className="badge badge-muted">{r.cluster||"—"}</span></td>
+                      <td><span className="badge" style={{background:AI.accentBg,color:AI.accent,border:`1px solid ${AI.accentBdr}`}}>{r.build_number?`#${r.build_number}`:"—"}</span></td>
+                      <td style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:13}}>
+                        <span style={{color:T.success,fontWeight:600}}>{r.passed_steps}✓</span>
+                        {r.failed_steps>0&&<span style={{color:T.danger,fontWeight:600,marginLeft:7}}>{r.failed_steps}✗</span>}
+                        <span style={{color:T.t3,marginLeft:5}}>/{r.total_steps}</span>
+                      </td>
+                      <td style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:13,color:T.t2}}>{fmtDur(r.total_duration)}</td>
+                      <td><span className={`badge ${r.has_failure?"badge-fail":"badge-ok"}`}>{r.has_failure?"Failed":"Passed"}</span></td>
+                    </tr>,
+                    open && (
+                      <tr key={r._id+"-ai"}>
+                        <td colSpan={8} style={{padding:"0 16px 16px 52px",background:T.cardBg2}}>
+                          <div style={{paddingTop:14}}>
+                            <div style={{fontSize:13,fontWeight:600,color:T.t2,marginBottom:10}}>
+                              Step trace — including AI response details
+                            </div>
+                            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                              {r.steps?.map((s,si) => (
+                                <div key={si} style={{
+                                  borderRadius:8,overflow:"hidden",
+                                  border:`1px solid ${!s.is_success ? T.danger+"40" : s.error_msg ? T.warn+"50" : T.border}`,
+                                  background:!s.is_success ? T.dangerBg : s.error_msg ? T.warnBg : T.cardBg,
+                                }}>
+                                  {/* Step header row */}
+                                  <div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px"}}>
+                                    <span style={{fontSize:14,fontWeight:700,color:!s.is_success?T.danger:T.success,minWidth:18,textAlign:"center"}}>
+                                      {!s.is_success?"✗":"✓"}
+                                    </span>
+                                    <span style={{flex:1,fontSize:14,color:T.t0,fontWeight:!s.is_success?600:400}}>{s.step}</span>
+                                    <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:12,color:T.t2,marginLeft:"auto"}}>
+                                      {s.response_time?.toFixed(2)}s
+                                    </span>
+                                    <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:13,
+                                      color:s.status_code?.startsWith("2")?T.success:T.danger,fontWeight:600,minWidth:36,textAlign:"right"}}>
+                                      {s.status_code}
+                                    </span>
+                                  </div>
+
+                                  {/* error_msg — always shown if present */}
+                                  {s.error_msg && (
+                                    <div style={{
+                                      margin:"0 14px 10px",padding:"10px 12px",
+                                      background:T.mode==="dark"?"rgba(248,113,113,0.08)":"#FFF5F5",
+                                      border:`1px solid ${T.danger}30`,borderRadius:6,
+                                    }}>
+                                      <div style={{fontSize:11,fontWeight:700,color:T.danger,letterSpacing:"0.06em",marginBottom:4}}>
+                                        ERROR MESSAGE
+                                      </div>
+                                      <div style={{fontSize:13,color:T.t0,fontFamily:"'IBM Plex Mono',monospace",
+                                        lineHeight:1.55,wordBreak:"break-word",whiteSpace:"pre-wrap"}}>
+                                        {s.error_msg}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* response_body — collapsible, shown only if present */}
+                                  {s.response_body && (
+                                    <ResponseBodyBlock body={s.response_body} T={T} AI={AI}/>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ),
+                  ].filter(Boolean);
+                })}
+              </tbody>
+            </table>
+          </div>
+          {pages>1&&<Paginator page={page} pages={pages} setPage={setPage} T={T}/>}
+        </div>
+      )}
+
+      {/* ── ERROR LOGS tab ── */}
+      {tab === "errors" && (
+        <div className="card" style={{overflow:"hidden"}}>
+          <div style={{padding:"14px 20px",borderBottom:`1px solid ${T.border}`,background:T.cardBg2,
+            display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:T.danger,flexShrink:0}}/>
+            <span style={{fontSize:15,fontWeight:700,color:T.t0}}>Error Log</span>
+            <span className="badge badge-fail" style={{marginLeft:"auto"}}>{errorSteps.length} entries</span>
+          </div>
+          {errorSteps.length === 0 ? (
+            <div style={{textAlign:"center",padding:"52px",color:T.t3}}>
+              <div style={{fontSize:32,marginBottom:8,color:T.success}}>✓</div>
+              <div style={{fontSize:15,fontWeight:600,color:T.success}}>No error messages logged</div>
+            </div>
+          ) : (
+            <>
+              <div style={{overflowX:"auto"}}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Project</th>
+                      <th>Build</th>
+                      <th>Step</th>
+                      <th>Status</th>
+                      <th>Error Message</th>
+                      <th>Response Body</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleErrors.map((e,i) => (
+                      <tr key={i} className="sr" style={{animationDelay:`${i*18}ms`}}>
+                        <td style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:12,color:T.t2,whiteSpace:"nowrap"}}>{fmtTime(e.run_ts)}</td>
+                        <td style={{fontWeight:600,color:T.t0,fontSize:13}}>{e.project}</td>
+                        <td><span className="badge" style={{background:AI.accentBg,color:AI.accent,border:`1px solid ${AI.accentBdr}`}}>{e.build?`#${e.build}`:"—"}</span></td>
+                        <td style={{fontWeight:500,color:T.t0,fontSize:13,maxWidth:200}}>{e.step}</td>
+                        <td>
+                          <span className={`badge ${e.success?"badge-ok":"badge-fail"}`}>{e.status}</span>
+                        </td>
+                        <td style={{maxWidth:280}}>
+                          <div style={{
+                            fontSize:12,color:T.danger,fontFamily:"'IBM Plex Mono',monospace",
+                            background:T.dangerBg,borderRadius:5,padding:"4px 8px",
+                            maxHeight:52,overflow:"hidden",
+                            display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",
+                          }}>
+                            {e.error_msg}
+                          </div>
+                        </td>
+                        <td>
+                          {e.resp_body
+                            ? <span className="badge badge-info" style={{cursor:"default"}} title={e.resp_body}>View ↗</span>
+                            : <span style={{color:T.t3,fontSize:12}}>—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {pages>1&&<Paginator page={page} pages={pages} setPage={setPage} T={T}/>}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── RESPONSE BODY COLLAPSIBLE ───────────────────────────────── */
+function ResponseBodyBlock({ body, T, AI }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{margin:"0 14px 10px"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{
+        display:"flex",alignItems:"center",gap:6,
+        background:"transparent",border:"none",cursor:"pointer",
+        padding:"4px 0",fontSize:12,color:AI.accent,fontWeight:600,
+        fontFamily:"'Inter',sans-serif",
+      }}>
+        <span style={{display:"inline-block",transform:open?"rotate(90deg)":"none",transition:"transform .18s"}}>▶</span>
+        Response Body {open?"▲":"▼"}
+      </button>
+      {open && (
+        <pre style={{
+          marginTop:6,padding:"10px 12px",
+          background:T.mode==="dark"?"rgba(99,102,241,0.08)":"#F5F3FF",
+          border:`1px solid ${AI.accentBdr}`,borderRadius:6,
+          fontSize:12,color:T.t1,fontFamily:"'IBM Plex Mono',monospace",
+          lineHeight:1.6,overflowX:"auto",whiteSpace:"pre-wrap",
+          wordBreak:"break-word",maxHeight:200,overflow:"auto",
+          animation:"fadeIn .18s ease",
+        }}>
+          {body}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+/* ─── SHARED PAGINATOR ────────────────────────────────────────── */
+function Paginator({ page, pages, setPage, T }) {
+  return (
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:10,
+      padding:"14px",borderTop:`1px solid ${T.border}`}}>
+      <button className="btn" onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1}>← Prev</button>
+      <span style={{fontSize:14,color:T.t2,fontFamily:"'IBM Plex Mono',monospace"}}>Page {page} / {pages}</span>
+      <button className="btn" onClick={()=>setPage(p=>Math.min(pages,p+1))} disabled={page===pages}>Next →</button>
+    </div>
+  );
+}
+
 /* ─── PAGE META ───────────────────────────────────────────────── */
 const PAGES={
   overview:{title:"Overview",        sub:"System-wide health metrics"},
@@ -1078,6 +1426,7 @@ const PAGES={
   runs:    {title:"Run History",     sub:"Full execution log — click any row to expand"},
   steps:   {title:"Step Analytics",  sub:"Failure rate and response time per step"},
   builds:  {title:"Build Tracker",   sub:"Trace failures to specific build numbers"},
+  arcai:   {title:"ARC AI Monitor",  sub:"AI script runs — with response body and error diagnostics"},
 };
 
 /* ─── APP ─────────────────────────────────────────────────────── */
@@ -1185,6 +1534,7 @@ export default function App() {
                 {page==="runs"&&<Section title="Execution Log" sub={`${data.results.length} total runs`} T={T}><RunHistory results={data.results} T={T}/></Section>}
                 {page==="steps"&&<Section title="Step-Level Analytics" sub="Sorted by failure count" T={T}><StepAnalytics summary={data.summary} T={T}/></Section>}
                 {page==="builds"&&<div className="fu"><BuildTracker results={data.results} T={T}/></div>}
+                {page==="arcai"&&<div className="fu"><ArcAIPage results={data.results} T={T}/></div>}
               </>
             )}
           </main>
@@ -1192,4 +1542,4 @@ export default function App() {
       </div>
     </>
   );
-}   
+}
