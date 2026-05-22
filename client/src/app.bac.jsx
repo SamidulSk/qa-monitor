@@ -1087,14 +1087,18 @@
 //     accent:    "#6366F1",
 //     accentBg:  T.mode === "dark" ? "rgba(99,102,241,0.13)" : "#EEF2FF",
 //     accentBdr: T.mode === "dark" ? "rgba(99,102,241,0.32)" : "rgba(99,102,241,0.28)",
-//     purple:    "#8B5CF6",
-//     purpleBg:  T.mode === "dark" ? "rgba(139,92,246,0.12)" : "#F5F3FF",
+//     swgBg:     T.mode === "dark" ? "rgba(239,68,68,0.12)"  : "#FEF2F2",
+//     swgBdr:    T.mode === "dark" ? "rgba(239,68,68,0.35)"  : "rgba(239,68,68,0.30)",
+//     swgText:   "#EF4444",
 //   };
 
-//   /* ── Filter from shared results — no separate fetch, no race conditions.
-//      The main app fetch (with retry) already has all the data.
-//      We filter client-side so topbar project/status filters do NOT interfere.
-//      Match: project contains "arc ai" (case-insensitive) OR script_type="ai"  */
+//   /* ── Helper: detect "Something Went Wrong"
+//      Condition: error_msg === "No Response" OR response_body === "No Response" */
+//   const isSWW = (s) =>
+//     (s.error_msg   || "").trim() === "No Response" ||
+//     (s.response_body || "").trim() === "No Response";
+
+//   /* ── Filter ARC AI runs from shared results (no separate fetch) ── */
 //   const aiRuns = useMemo(() => {
 //     return (results || []).filter(r => {
 //       const proj = (r.project || "").toLowerCase().trim();
@@ -1102,12 +1106,12 @@
 //     });
 //   }, [results]);
 
-//   /* ── All error steps across AI runs ── */
+//   /* ── Flatten error/fail steps for Error Log tab ── */
 //   const errorSteps = useMemo(() => {
 //     const list = [];
 //     aiRuns.forEach(r => {
 //       (r.steps || []).forEach(s => {
-//         if (s.error_msg || !s.is_success) {
+//         if (!s.is_success || s.error_msg || s.response_body) {
 //           list.push({
 //             project:   r.project,
 //             build:     r.build_number,
@@ -1117,8 +1121,9 @@
 //             status:    s.status_code,
 //             success:   s.is_success,
 //             resp_time: s.response_time,
-//             error_msg: s.error_msg  || "",
+//             error_msg: s.error_msg     || "",
 //             resp_body: s.response_body || "",
+//             sww:       isSWW(s),
 //           });
 //         }
 //       });
@@ -1127,43 +1132,54 @@
 //   }, [aiRuns]);
 
 //   /* ── KPIs ── */
-//   const totalRuns    = aiRuns.length;
-//   const failedRuns   = aiRuns.filter(r => r.has_failure).length;
-//   const totalSteps   = aiRuns.reduce((s, r) => s + (r.total_steps  || 0), 0);
-//   const totalFailed  = aiRuns.reduce((s, r) => s + (r.failed_steps || 0), 0);
-//   const failRate     = totalSteps > 0 ? ((totalFailed / totalSteps) * 100).toFixed(1) : "0.0";
+//   const totalRuns   = aiRuns.length;
+//   const failedRuns  = aiRuns.filter(r => r.has_failure).length;
+//   const totalSteps  = aiRuns.reduce((s, r) => s + (r.total_steps  || 0), 0);
+//   const totalFailed = aiRuns.reduce((s, r) => s + (r.failed_steps || 0), 0);
+//   const failRate    = totalSteps > 0 ? ((totalFailed / totalSteps) * 100).toFixed(1) : "0.0";
+//   /* "Something Went Wrong" count — steps where AI gave NO response at all */
+//   const swwCount    = useMemo(() =>
+//     aiRuns.reduce((acc, r) =>
+//       acc + (r.steps || []).filter(s => isSWW(s)).length, 0
+//     ), [aiRuns]);
 
-//   /* ── Filtered list for current tab ── */
+//   /* ── Filtered list per tab ── */
 //   const filtered = useMemo(() => {
 //     const q = search.toLowerCase();
 //     if (tab === "runs") {
 //       return q
-//         ? aiRuns.filter(r => r.project?.toLowerCase().includes(q) || r.build_number?.includes(q) || r.cluster?.toLowerCase().includes(q))
+//         ? aiRuns.filter(r =>
+//             r.project?.toLowerCase().includes(q) ||
+//             r.build_number?.includes(q) ||
+//             r.cluster?.toLowerCase().includes(q))
 //         : aiRuns;
-//     } else {
+//     } else if (tab === "errors") {
 //       return q
-//         ? errorSteps.filter(e => e.step?.toLowerCase().includes(q) || e.error_msg?.toLowerCase().includes(q) || e.project?.toLowerCase().includes(q))
+//         ? errorSteps.filter(e =>
+//             e.step?.toLowerCase().includes(q) ||
+//             e.error_msg?.toLowerCase().includes(q) ||
+//             e.project?.toLowerCase().includes(q))
 //         : errorSteps;
+//     } else { /* sww tab */
+//       const swwSteps = errorSteps.filter(e => e.sww);
+//       return q
+//         ? swwSteps.filter(e => e.step?.toLowerCase().includes(q) || e.project?.toLowerCase().includes(q))
+//         : swwSteps;
 //     }
 //   }, [tab, aiRuns, errorSteps, search]);
 
-//   const totalPages  = Math.ceil(filtered.length / PER);
-//   const visible     = filtered.slice((page - 1) * PER, page * PER);
+//   const totalPages = Math.ceil(filtered.length / PER);
+//   const visible    = filtered.slice((page - 1) * PER, page * PER);
+//   const switchTab  = (t) => { setTab(t); setPage(1); setSearch(""); setExpanded(null); };
 
-//   const switchTab = (t) => { setTab(t); setPage(1); setSearch(""); setExpanded(null); };
-
-//   /* ── Empty state:
-//      - results is [] → main fetch still loading → show spinner
-//      - results has data but no ARC AI records → show guidance            */
+//   /* ── Empty / loading state ── */
 //   if (totalRuns === 0) {
 //     const mainStillLoading = !results || results.length === 0;
 //     return mainStillLoading ? (
-//       <div style={{ textAlign: "center", padding: "80px 20px", color: T.t3 }}>
-//         <div style={{
-//           width: 32, height: 32, borderRadius: "50%",
+//       <div style={{ textAlign: "center", padding: "80px 20px" }}>
+//         <div style={{ width: 32, height: 32, borderRadius: "50%",
 //           border: `2px solid ${T.border}`, borderTop: `2px solid ${AI.accent}`,
-//           animation: "spin .7s linear infinite", margin: "0 auto 14px",
-//         }}/>
+//           animation: "spin .7s linear infinite", margin: "0 auto 14px" }}/>
 //         <div style={{ fontSize: 14, fontWeight: 500, color: T.t2 }}>Loading ARC AI data…</div>
 //       </div>
 //     ) : (
@@ -1171,24 +1187,10 @@
 //         <div style={{ fontSize: 44, marginBottom: 14 }}>⬡</div>
 //         <div style={{ fontSize: 18, fontWeight: 700, color: T.t0, marginBottom: 8 }}>No ARC AI runs yet</div>
 //         <div style={{ fontSize: 14, color: T.t2, maxWidth: 460, margin: "0 auto", lineHeight: 1.7 }}>
-//           Push data from your ARC AI scripts using the same API endpoint.
-//           Make sure the <code style={{ background: T.cardBg2, padding: "1px 7px", borderRadius: 4, fontSize: 13 }}>project</code> field
-//           contains <strong style={{ color: AI.accent }}>"ARC AI"</strong> — e.g.{" "}
-//           <em style={{ color: T.t1 }}>"ARC AI Facilities"</em>.
-//         </div>
-//         <div style={{
-//           marginTop: 24, padding: "14px 20px", background: AI.accentBg,
-//           border: `1px solid ${AI.accentBdr}`, borderRadius: 10,
-//           display: "inline-block", textAlign: "left", maxWidth: 380,
-//         }}>
-//           <div style={{ fontSize: 11, color: AI.accent, fontWeight: 700, marginBottom: 8, letterSpacing: "0.05em" }}>
-//             SAMPLE PROJECT NAMES
-//           </div>
-//           {["ARC AI Facilities", "ARC AI SiteSite", "ARC AI Projects"].map(n => (
-//             <div key={n} style={{ fontSize: 13, color: T.t1, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 3 }}>
-//               "{n}"
-//             </div>
-//           ))}
+//           Push data using the same API endpoint with{" "}
+//           <code style={{ background: T.cardBg2, padding: "1px 7px", borderRadius: 4, fontSize: 13 }}>project</code>{" "}
+//           containing <strong style={{ color: AI.accent }}>"ARC AI"</strong> — e.g.{" "}
+//           <em style={{ color: T.t1 }}>"ARC AI 5min Scripts"</em>.
 //         </div>
 //       </div>
 //     );
@@ -1197,158 +1199,331 @@
 //   return (
 //     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
+//       {/* ── SWW Alert Banner (shown only when count > 0) ── */}
+//       {swwCount > 0 && (
+//         <div className="fu" style={{
+//           display: "flex", alignItems: "center", gap: 14,
+//           padding: "14px 20px", borderRadius: 12,
+//           background: AI.swgBg,
+//           border: `1px solid ${AI.swgBdr}`,
+//           boxShadow: T.mode === "dark"
+//             ? "0 0 0 1px rgba(239,68,68,0.15), 0 4px 16px rgba(239,68,68,0.12)"
+//             : "0 4px 12px rgba(239,68,68,0.10)",
+//           animation: "borderPop 3s ease infinite",
+//         }}>
+//           <div style={{
+//             width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+//             background: "rgba(239,68,68,0.15)",
+//             display: "flex", alignItems: "center", justifyContent: "center",
+//             fontSize: 20,
+//           }}>⚠</div>
+//           <div style={{ flex: 1 }}>
+//             <div style={{ fontSize: 15, fontWeight: 700, color: AI.swgText, marginBottom: 2 }}>
+//               Something Went Wrong — AI gave no response
+//             </div>
+//             <div style={{ fontSize: 13, color: T.t1, lineHeight: 1.5 }}>
+//               <strong style={{ color: AI.swgText }}>{swwCount} step{swwCount > 1 ? "s" : ""}</strong>{" "}
+//               returned <code style={{ background: T.cardBg2, padding: "1px 6px", borderRadius: 4, fontSize: 12 }}>
+//                 "No Response"
+//               </code> — the AI model failed to respond. Click the{" "}
+//               <strong>SWW Log</strong> tab to investigate.
+//             </div>
+//           </div>
+//           <button
+//             onClick={() => switchTab("sww")}
+//             style={{
+//               padding: "8px 16px", borderRadius: 8, border: `1px solid ${AI.swgBdr}`,
+//               background: AI.swgBg, color: AI.swgText, fontWeight: 600,
+//               fontSize: 13, cursor: "pointer", flexShrink: 0,
+//               fontFamily: "'Inter',sans-serif", transition: "all .15s",
+//             }}>
+//             View SWW Log →
+//           </button>
+//         </div>
+//       )}
+
 //       {/* ── KPI row ── */}
-//       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 12 }}>
+//       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(155px,1fr))", gap: 12 }}>
 //         {[
-//           { label: "AI Script Runs",  value: totalRuns,   color: AI.accent  },
-//           { label: "Failed Runs",     value: failedRuns,  color: T.danger   },
-//           { label: "Steps Checked",   value: totalSteps,  color: T.warn     },
-//           { label: "Step Failures",   value: totalFailed, color: T.danger   },
-//           { label: "Failure Rate",    value: failRate,    color: healthC(parseFloat(failRate), T), suffix: "%" },
+//           { label: "AI Script Runs",        value: totalRuns,  color: AI.accent                         },
+//           { label: "Failed Runs",           value: failedRuns, color: T.danger                          },
+//           { label: "Steps Checked",         value: totalSteps, color: T.warn                            },
+//           { label: "Step Failures",         value: totalFailed,color: T.danger                          },
+//           { label: "Failure Rate",          value: failRate,   color: healthC(parseFloat(failRate), T), suffix: "%" },
+//           { label: "Something Went Wrong",  value: swwCount,   color: AI.swgText, sww: true             },
 //         ].map((k, i) => (
-//           <div key={k.label} className="card fu" style={{ padding: "16px 18px", animationDelay: `${i * 45}ms`, borderTop: `2.5px solid ${k.color}` }}>
-//             <div style={{ fontSize: 28, fontWeight: 700, color: k.color, letterSpacing: "-0.03em", lineHeight: 1 }}>
+//           <div key={k.label}
+//             onClick={k.sww && swwCount > 0 ? () => switchTab("sww") : undefined}
+//             className="card fu"
+//             style={{
+//               padding: "16px 18px", animationDelay: `${i * 40}ms`,
+//               borderTop: `2.5px solid ${k.color}`,
+//               cursor: k.sww && swwCount > 0 ? "pointer" : "default",
+//               outline: k.sww && swwCount > 0 && tab === "sww"
+//                 ? `2px solid ${AI.swgText}` : "none",
+//               boxShadow: k.sww && swwCount > 0
+//                 ? `0 4px 16px ${AI.swgText}20` : undefined,
+//               transition: "box-shadow .2s, outline .2s",
+//             }}>
+//             <div style={{ fontSize: 28, fontWeight: 700, color: k.color,
+//               letterSpacing: "-0.03em", lineHeight: 1 }}>
 //               <Counter to={parseFloat(k.value)} dec={k.suffix ? 1 : 0} suffix={k.suffix || ""} />
 //             </div>
-//             <div style={{ fontSize: 13, fontWeight: 600, color: T.t1, marginTop: 6 }}>{k.label}</div>
+//             <div style={{ fontSize: 13, fontWeight: 600, color: T.t1, marginTop: 6,
+//               display: "flex", alignItems: "center", gap: 5 }}>
+//               {k.label}
+//               {k.sww && swwCount > 0 && (
+//                 <span style={{ fontSize: 10, color: AI.swgText, fontWeight: 700,
+//                   background: AI.swgBg, border: `1px solid ${AI.swgBdr}`,
+//                   borderRadius: 4, padding: "1px 5px" }}>CLICK</span>
+//               )}
+//             </div>
 //           </div>
 //         ))}
 //       </div>
 
 //       {/* ── Tab bar + search ── */}
-//       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-//         {/* Tabs */}
-//         <div style={{
-//           display: "flex", alignItems: "center", gap: 0,
+//       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+//         <div style={{ display: "flex", alignItems: "center", gap: 0,
 //           background: T.cardBg2, border: `1px solid ${T.border}`,
-//           borderRadius: 10, padding: 3, flexShrink: 0,
-//         }}>
+//           borderRadius: 10, padding: 3, flexShrink: 0 }}>
 //           {[
 //             { id: "runs",   label: `Run History (${aiRuns.length})` },
 //             { id: "errors", label: `Error Log (${errorSteps.length})` },
+//             { id: "sww",    label: `SWW Log (${swwCount})`, alert: swwCount > 0 },
 //           ].map(t => (
 //             <button key={t.id} onClick={() => switchTab(t.id)} style={{
-//               padding: "7px 18px", borderRadius: 7, border: "none",
-//               background: tab === t.id ? T.cardBg : "transparent",
-//               color: tab === t.id ? AI.accent : T.t2,
-//               fontWeight: tab === t.id ? 600 : 400,
+//               padding: "7px 16px", borderRadius: 7, border: "none",
+//               background: tab === t.id
+//                 ? (t.alert ? AI.swgBg : T.cardBg)
+//                 : "transparent",
+//               color: tab === t.id
+//                 ? (t.alert ? AI.swgText : AI.accent)
+//                 : (t.alert && swwCount > 0 ? AI.swgText : T.t2),
+//               fontWeight: tab === t.id ? 600 : (t.alert && swwCount > 0 ? 600 : 400),
 //               fontSize: 14, cursor: "pointer",
 //               fontFamily: "'Inter',sans-serif",
 //               boxShadow: tab === t.id ? T.shadow : "none",
 //               transition: "all .15s",
-//             }}>{t.label}</button>
+//               display: "flex", alignItems: "center", gap: 6,
+//             }}>
+//               {t.label}
+//               {t.alert && swwCount > 0 && (
+//                 <span style={{ width: 7, height: 7, borderRadius: "50%",
+//                   background: AI.swgText, display: "inline-block",
+//                   animation: "pulse 1.5s ease infinite" }}/>
+//               )}
+//             </button>
 //           ))}
 //         </div>
-
-//         {/* Search */}
 //         <input
-//           placeholder={tab === "runs" ? "Search project, build, cluster…" : "Search step, error, project…"}
+//           placeholder={
+//             tab === "runs"   ? "Search project, build, cluster…" :
+//             tab === "errors" ? "Search step, error message, project…" :
+//                                "Search step, project…"
+//           }
 //           value={search}
 //           onChange={e => { setSearch(e.target.value); setPage(1); }}
 //           style={{ flex: 1, minWidth: 200, fontSize: 14 }}
 //         />
-
 //         {search && (
-//           <button className="btn ghost" onClick={() => setSearch("")} style={{ fontSize: 13 }}>Clear ×</button>
+//           <button className="btn ghost" onClick={() => setSearch("")}
+//             style={{ fontSize: 13 }}>Clear ×</button>
 //         )}
 //       </div>
 
 //       {/* ── RUN HISTORY tab ── */}
 //       {tab === "runs" && (
 //         <div className="card" style={{ overflow: "hidden" }}>
-//           <div style={{
-//             display: "flex", alignItems: "center", justifyContent: "space-between",
-//             padding: "14px 20px", borderBottom: `1px solid ${T.border}`, background: T.cardBg2,
-//           }}>
+//           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+//             padding: "14px 20px", borderBottom: `1px solid ${T.border}`, background: T.cardBg2 }}>
 //             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-//               <div style={{ width: 8, height: 8, borderRadius: "50%", background: AI.accent }} />
+//               <div style={{ width: 8, height: 8, borderRadius: "50%", background: AI.accent }}/>
 //               <span style={{ fontSize: 15, fontWeight: 700, color: T.t0 }}>ARC AI — Run History</span>
 //             </div>
-//             <span className="badge" style={{ background: AI.accentBg, color: AI.accent, border: `1px solid ${AI.accentBdr}` }}>
+//             <span className="badge" style={{ background: AI.accentBg, color: AI.accent,
+//               border: `1px solid ${AI.accentBdr}` }}>
 //               {filtered.length} runs
 //             </span>
 //           </div>
 
 //           {filtered.length === 0 ? (
-//             <div style={{ padding: "40px", textAlign: "center", color: T.t3, fontSize: 14 }}>No runs match your search.</div>
+//             <div style={{ padding: "40px", textAlign: "center", color: T.t3, fontSize: 14 }}>
+//               No runs match your search.
+//             </div>
 //           ) : (
 //             <div style={{ overflowX: "auto" }}>
 //               <table>
 //                 <thead>
 //                   <tr>
-//                     <th style={{ width: 24 }} />
-//                     <th>Timestamp</th>
-//                     <th>Project</th>
-//                     <th>Cluster</th>
-//                     <th>Build</th>
-//                     <th>Steps</th>
-//                     <th>Duration</th>
-//                     <th>Result</th>
+//                     <th style={{ width: 24 }}/>
+//                     <th>Timestamp</th><th>Project</th><th>Cluster</th>
+//                     <th>Build</th><th>Steps</th><th>SWW</th><th>Duration</th><th>Result</th>
 //                   </tr>
 //                 </thead>
 //                 <tbody>
 //                   {visible.map(r => {
-//                     const open = expanded === r._id;
+//                     const open    = expanded === r._id;
+//                     const runSWW  = (r.steps || []).filter(s => isSWW(s)).length;
 //                     return [
 //                       <tr key={r._id} onClick={() => setExpanded(open ? null : r._id)}
 //                         style={{ cursor: "pointer", background: open ? AI.accentBg : undefined }}>
 //                         <td style={{ textAlign: "center", color: T.t3, fontSize: 12 }}>
-//                           <span style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "none", transition: "transform .2s" }}>▶</span>
+//                           <span style={{ display: "inline-block",
+//                             transform: open ? "rotate(90deg)" : "none",
+//                             transition: "transform .2s" }}>▶</span>
 //                         </td>
-//                         <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: T.t2, whiteSpace: "nowrap" }}>{fmtTime(r.timestamp)}</td>
+//                         <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13,
+//                           color: T.t2, whiteSpace: "nowrap" }}>{fmtTime(r.timestamp)}</td>
 //                         <td style={{ fontWeight: 600, color: T.t0, fontSize: 14 }}>{r.project}</td>
 //                         <td><span className="badge badge-muted">{r.cluster || "—"}</span></td>
 //                         <td>
-//                           <span className="badge" style={{ background: AI.accentBg, color: AI.accent, border: `1px solid ${AI.accentBdr}` }}>
+//                           <span className="badge" style={{ background: AI.accentBg,
+//                             color: AI.accent, border: `1px solid ${AI.accentBdr}` }}>
 //                             {r.build_number ? `#${r.build_number}` : "—"}
 //                           </span>
 //                         </td>
 //                         <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13 }}>
 //                           <span style={{ color: T.success, fontWeight: 600 }}>{r.passed_steps}✓</span>
-//                           {r.failed_steps > 0 && <span style={{ color: T.danger, fontWeight: 600, marginLeft: 7 }}>{r.failed_steps}✗</span>}
+//                           {r.failed_steps > 0 && (
+//                             <span style={{ color: T.danger, fontWeight: 600, marginLeft: 7 }}>
+//                               {r.failed_steps}✗
+//                             </span>
+//                           )}
 //                           <span style={{ color: T.t3, marginLeft: 5 }}>/{r.total_steps}</span>
 //                         </td>
-//                         <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: T.t2 }}>{fmtDur(r.total_duration)}</td>
-//                         <td><span className={`badge ${r.has_failure ? "badge-fail" : "badge-ok"}`}>{r.has_failure ? "Failed" : "Passed"}</span></td>
+//                         <td>
+//                           {runSWW > 0 ? (
+//                             <span style={{ display: "inline-flex", alignItems: "center", gap: 4,
+//                               padding: "2px 8px", borderRadius: 6, fontSize: 12, fontWeight: 700,
+//                               background: AI.swgBg, color: AI.swgText,
+//                               border: `1px solid ${AI.swgBdr}` }}>
+//                               ⚠ {runSWW}
+//                             </span>
+//                           ) : (
+//                             <span style={{ color: T.t3, fontSize: 12 }}>—</span>
+//                           )}
+//                         </td>
+//                         <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13,
+//                           color: T.t2 }}>{fmtDur(r.total_duration)}</td>
+//                         <td>
+//                           <span className={`badge ${r.has_failure ? "badge-fail" : "badge-ok"}`}>
+//                             {r.has_failure ? "Failed" : "Passed"}
+//                           </span>
+//                         </td>
 //                       </tr>,
 //                       open && (
 //                         <tr key={r._id + "-exp"}>
-//                           <td colSpan={8} style={{ padding: "0 16px 16px 52px", background: T.cardBg2 }}>
+//                           <td colSpan={9} style={{ padding: "0 16px 16px 52px",
+//                             background: T.cardBg2 }}>
 //                             <div style={{ paddingTop: 14 }}>
-//                               <div style={{ fontSize: 13, fontWeight: 600, color: T.t2, marginBottom: 10 }}>
+//                               <div style={{ fontSize: 13, fontWeight: 600, color: T.t2,
+//                                 marginBottom: 10 }}>
 //                                 Step trace — AI response details
 //                               </div>
 //                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-//                                 {(r.steps || []).map((s, si) => (
-//                                   <div key={si} style={{
-//                                     borderRadius: 8, overflow: "hidden",
-//                                     border: `1px solid ${!s.is_success ? T.danger + "45" : s.error_msg ? T.warn + "50" : T.border}`,
-//                                     background: !s.is_success ? T.dangerBg : s.error_msg ? T.warnBg : T.cardBg,
-//                                   }}>
-//                                     {/* Step header */}
-//                                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px" }}>
-//                                       <span style={{ fontSize: 14, fontWeight: 700, color: !s.is_success ? T.danger : T.success, minWidth: 18, textAlign: "center" }}>
-//                                         {!s.is_success ? "✗" : "✓"}
-//                                       </span>
-//                                       <span style={{ flex: 1, fontSize: 14, color: T.t0, fontWeight: !s.is_success ? 600 : 400 }}>{s.step}</span>
-//                                       <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: T.t2 }}>{s.response_time?.toFixed(2)}s</span>
-//                                       <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: s.status_code?.startsWith("2") ? T.success : T.danger, fontWeight: 600, minWidth: 36, textAlign: "right" }}>
-//                                         {s.status_code}
-//                                       </span>
-//                                     </div>
-//                                     {/* error_msg */}
-//                                     {s.error_msg && (
-//                                       <div style={{ margin: "0 14px 10px", padding: "10px 12px", background: T.mode === "dark" ? "rgba(248,113,113,0.08)" : "#FFF5F5", border: `1px solid ${T.danger}30`, borderRadius: 6 }}>
-//                                         <div style={{ fontSize: 11, fontWeight: 700, color: T.danger, letterSpacing: "0.06em", marginBottom: 4 }}>ERROR MESSAGE</div>
-//                                         <div style={{ fontSize: 13, color: T.t0, fontFamily: "'IBM Plex Mono',monospace", lineHeight: 1.55, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
-//                                           {s.error_msg}
-//                                         </div>
+//                                 {(r.steps || []).map((s, si) => {
+//                                   const sww = isSWW(s);
+//                                   return (
+//                                     <div key={si} style={{
+//                                       borderRadius: 8, overflow: "hidden",
+//                                       border: `1px solid ${
+//                                         sww          ? AI.swgBdr          :
+//                                         !s.is_success ? T.danger + "45"   :
+//                                         T.border}`,
+//                                       background:
+//                                         sww           ? AI.swgBg :
+//                                         !s.is_success ? T.dangerBg :
+//                                         T.cardBg,
+//                                       animation: sww ? "borderPop 3s ease infinite" : undefined,
+//                                     }}>
+//                                       {/* Step header row */}
+//                                       <div style={{ display: "flex", alignItems: "center",
+//                                         gap: 10, padding: "10px 14px", flexWrap: "wrap" }}>
+//                                         <span style={{ fontSize: 14, fontWeight: 700,
+//                                           color: sww ? AI.swgText :
+//                                                  !s.is_success ? T.danger : T.success,
+//                                           minWidth: 18, textAlign: "center" }}>
+//                                           {sww ? "⚠" : !s.is_success ? "✗" : "✓"}
+//                                         </span>
+//                                         <span style={{ flex: 1, fontSize: 14, color: T.t0,
+//                                           fontWeight: sww || !s.is_success ? 600 : 400 }}>
+//                                           {s.step}
+//                                         </span>
+//                                         {sww && (
+//                                           <span style={{ padding: "2px 8px", borderRadius: 6,
+//                                             fontSize: 11, fontWeight: 700,
+//                                             background: AI.swgBg, color: AI.swgText,
+//                                             border: `1px solid ${AI.swgBdr}` }}>
+//                                             SOMETHING WENT WRONG
+//                                           </span>
+//                                         )}
+//                                         <span style={{ fontFamily: "'IBM Plex Mono',monospace",
+//                                           fontSize: 13, color: T.t2 }}>
+//                                           {s.response_time?.toFixed(2)}s
+//                                         </span>
+//                                         <span style={{ fontFamily: "'IBM Plex Mono',monospace",
+//                                           fontSize: 13, fontWeight: 600, minWidth: 36,
+//                                           textAlign: "right",
+//                                           color: s.status_code?.startsWith("2") ? T.success : T.danger }}>
+//                                           {s.status_code}
+//                                         </span>
 //                                       </div>
-//                                     )}
-//                                     {/* response_body */}
-//                                     {s.response_body && <ResponseBodyBlock body={s.response_body} T={T} AI={AI} />}
-//                                   </div>
-//                                 ))}
+
+//                                       {/* SWW explanation */}
+//                                       {sww && (
+//                                         <div style={{ margin: "0 14px 10px", padding: "10px 14px",
+//                                           background: T.mode === "dark"
+//                                             ? "rgba(239,68,68,0.08)" : "#FFF5F5",
+//                                           border: `1px solid ${AI.swgBdr}`,
+//                                           borderRadius: 6,
+//                                           display: "flex", alignItems: "flex-start", gap: 10 }}>
+//                                           <span style={{ fontSize: 16, flexShrink: 0 }}>🚫</span>
+//                                           <div>
+//                                             <div style={{ fontSize: 12, fontWeight: 700,
+//                                               color: AI.swgText, letterSpacing: "0.05em",
+//                                               marginBottom: 4 }}>
+//                                               AI DID NOT RESPOND — SOMETHING WENT WRONG
+//                                             </div>
+//                                             <div style={{ fontSize: 13, color: T.t1, lineHeight: 1.5 }}>
+//                                               Both <code style={{ background: T.cardBg2,
+//                                                 padding: "1px 5px", borderRadius: 3, fontSize: 12 }}>
+//                                                 error_msg</code> and{" "}
+//                                               <code style={{ background: T.cardBg2,
+//                                                 padding: "1px 5px", borderRadius: 3, fontSize: 12 }}>
+//                                                 response_body</code>{" "}
+//                                               returned <strong>"No Response"</strong>.
+//                                               The AI model completely failed to process this query.
+//                                             </div>
+//                                           </div>
+//                                         </div>
+//                                       )}
+
+//                                       {/* error_msg (non-SWW) */}
+//                                       {s.error_msg && !sww && (
+//                                         <div style={{ margin: "0 14px 10px", padding: "10px 12px",
+//                                           background: T.mode === "dark"
+//                                             ? "rgba(248,113,113,0.08)" : "#FFF5F5",
+//                                           border: `1px solid ${T.danger}30`, borderRadius: 6 }}>
+//                                           <div style={{ fontSize: 11, fontWeight: 700,
+//                                             color: T.danger, letterSpacing: "0.06em",
+//                                             marginBottom: 4 }}>ERROR MESSAGE</div>
+//                                           <div style={{ fontSize: 13, color: T.t0,
+//                                             fontFamily: "'IBM Plex Mono',monospace",
+//                                             lineHeight: 1.55, wordBreak: "break-word",
+//                                             whiteSpace: "pre-wrap" }}>
+//                                             {s.error_msg}
+//                                           </div>
+//                                         </div>
+//                                       )}
+
+//                                       {/* response_body */}
+//                                       {s.response_body && !sww && (
+//                                         <ResponseBodyBlock body={s.response_body} T={T} AI={AI}/>
+//                                       )}
+//                                     </div>
+//                                   );
+//                                 })}
 //                               </div>
 //                             </div>
 //                           </td>
@@ -1360,74 +1535,117 @@
 //               </table>
 //             </div>
 //           )}
-//           {totalPages > 1 && <Paginator page={page} pages={totalPages} setPage={setPage} T={T} />}
+//           {totalPages > 1 && <Paginator page={page} pages={totalPages} setPage={setPage} T={T}/>}
 //         </div>
 //       )}
 
 //       {/* ── ERROR LOG tab ── */}
 //       {tab === "errors" && (
 //         <div className="card" style={{ overflow: "hidden" }}>
-//           <div style={{
-//             display: "flex", alignItems: "center", justifyContent: "space-between",
-//             padding: "14px 20px", borderBottom: `1px solid ${T.border}`, background: T.cardBg2,
-//           }}>
+//           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+//             padding: "14px 20px", borderBottom: `1px solid ${T.border}`, background: T.cardBg2 }}>
 //             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-//               <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.danger }} />
-//               <span style={{ fontSize: 15, fontWeight: 700, color: T.t0 }}>ARC AI — Error Log</span>
+//               <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.danger }}/>
+//               <span style={{ fontSize: 15, fontWeight: 700, color: T.t0 }}>
+//                 ARC AI — Error Log
+//               </span>
 //             </div>
 //             <span className="badge badge-fail">{filtered.length} entries</span>
 //           </div>
-
 //           {filtered.length === 0 ? (
 //             <div style={{ textAlign: "center", padding: "52px", color: T.t3 }}>
 //               <div style={{ fontSize: 32, marginBottom: 8, color: T.success }}>✓</div>
 //               <div style={{ fontSize: 15, fontWeight: 600, color: T.success }}>No errors logged</div>
-//               <div style={{ fontSize: 13, color: T.t3, marginTop: 4 }}>All AI step executions passed without errors</div>
+//               <div style={{ fontSize: 13, color: T.t3, marginTop: 4 }}>
+//                 All AI step executions passed without errors
+//               </div>
 //             </div>
 //           ) : (
 //             <div style={{ overflowX: "auto" }}>
 //               <table>
 //                 <thead>
 //                   <tr>
-//                     <th>Timestamp</th>
-//                     <th>Project</th>
-//                     <th>Build</th>
-//                     <th>Step</th>
-//                     <th>Status</th>
-//                     <th>Response Time</th>
-//                     <th>Error Message</th>
-//                     <th>Response Body</th>
+//                     <th>Timestamp</th><th>Project</th><th>Build</th><th>Step / Query</th>
+//                     <th>Status</th><th>Resp Time</th>
+//                     <th>Error Message</th><th>Response Body</th><th>SWW</th>
 //                   </tr>
 //                 </thead>
 //                 <tbody>
 //                   {visible.map((e, i) => (
-//                     <tr key={i} className="sr" style={{ animationDelay: `${i * 16}ms` }}>
-//                       <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: T.t2, whiteSpace: "nowrap" }}>{fmtTime(e.run_ts)}</td>
+//                     <tr key={i} className="sr" style={{ animationDelay: `${i * 16}ms`,
+//                       background: e.sww
+//                         ? (T.mode === "dark" ? "rgba(239,68,68,0.05)" : "#FFF5F5")
+//                         : undefined }}>
+//                       <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12,
+//                         color: T.t2, whiteSpace: "nowrap" }}>{fmtTime(e.run_ts)}</td>
 //                       <td style={{ fontWeight: 600, color: T.t0, fontSize: 13 }}>{e.project}</td>
 //                       <td>
-//                         <span className="badge" style={{ background: AI.accentBg, color: AI.accent, border: `1px solid ${AI.accentBdr}` }}>
+//                         <span className="badge" style={{ background: AI.accentBg,
+//                           color: AI.accent, border: `1px solid ${AI.accentBdr}` }}>
 //                           {e.build ? `#${e.build}` : "—"}
 //                         </span>
 //                       </td>
-//                       <td style={{ fontWeight: 500, color: T.t0, fontSize: 13, maxWidth: 180 }}>
-//                         <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.step}</div>
-//                       </td>
-//                       <td><span className={`badge ${e.success ? "badge-ok" : "badge-fail"}`}>{e.status}</span></td>
-//                       <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: T.t2 }}>{e.resp_time?.toFixed(2)}s</td>
-//                       <td style={{ maxWidth: 260 }}>
-//                         {e.error_msg ? (
-//                           <div style={{
-//                             fontSize: 12, color: T.danger, fontFamily: "'IBM Plex Mono',monospace",
-//                             background: T.dangerBg, borderRadius: 5, padding: "4px 8px",
-//                             overflow: "hidden", display: "-webkit-box",
-//                             WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-//                           }}>{e.error_msg}</div>
-//                         ) : <span style={{ color: T.t3, fontSize: 12 }}>—</span>}
+//                       <td style={{ maxWidth: 200 }}>
+//                         <div style={{ fontWeight: 500, color: T.t0, fontSize: 13,
+//                           overflow: "hidden", textOverflow: "ellipsis",
+//                           whiteSpace: "nowrap" }}>{e.step}</div>
 //                       </td>
 //                       <td>
-//                         {e.resp_body
-//                           ? <span className="badge badge-info" title={e.resp_body} style={{ cursor: "default", fontSize: 11 }}>Available ↗</span>
-//                           : <span style={{ color: T.t3, fontSize: 12 }}>—</span>}
+//                         <span className={`badge ${e.success ? "badge-ok" : "badge-fail"}`}>
+//                           {e.status}
+//                         </span>
+//                       </td>
+//                       <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12,
+//                         color: T.t2 }}>{e.resp_time?.toFixed(2)}s</td>
+//                       <td style={{ maxWidth: 220 }}>
+//                         {e.error_msg && !e.sww ? (
+//                           <div style={{ fontSize: 12, color: T.danger,
+//                             fontFamily: "'IBM Plex Mono',monospace",
+//                             background: T.dangerBg, borderRadius: 5,
+//                             padding: "4px 8px", overflow: "hidden",
+//                             display: "-webkit-box", WebkitLineClamp: 2,
+//                             WebkitBoxOrient: "vertical" }}>
+//                             {e.error_msg}
+//                           </div>
+//                         ) : e.sww ? (
+//                           <span style={{ fontSize: 12, color: AI.swgText, fontStyle: "italic" }}>
+//                             No Response
+//                           </span>
+//                         ) : (
+//                           <span style={{ color: T.t3, fontSize: 12 }}>—</span>
+//                         )}
+//                       </td>
+//                       <td style={{ maxWidth: 200 }}>
+//                         {e.resp_body && !e.sww ? (
+//                           <div style={{ fontSize: 12, color: T.t1,
+//                             fontFamily: "'IBM Plex Mono',monospace",
+//                             background: T.cardBg2, borderRadius: 5,
+//                             padding: "4px 8px", overflow: "hidden",
+//                             display: "-webkit-box", WebkitLineClamp: 2,
+//                             WebkitBoxOrient: "vertical", cursor: "default" }}
+//                             title={e.resp_body}>
+//                             {e.resp_body}
+//                           </div>
+//                         ) : e.sww ? (
+//                           <span style={{ fontSize: 12, color: AI.swgText, fontStyle: "italic" }}>
+//                             No Response
+//                           </span>
+//                         ) : (
+//                           <span style={{ color: T.t3, fontSize: 12 }}>—</span>
+//                         )}
+//                       </td>
+//                       <td>
+//                         {e.sww ? (
+//                           <span style={{ display: "inline-flex", alignItems: "center", gap: 4,
+//                             padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+//                             background: AI.swgBg, color: AI.swgText,
+//                             border: `1px solid ${AI.swgBdr}`,
+//                             animation: "pulse 2s ease infinite" }}>
+//                             ⚠ SWW
+//                           </span>
+//                         ) : (
+//                           <span style={{ color: T.t3, fontSize: 12 }}>—</span>
+//                         )}
 //                       </td>
 //                     </tr>
 //                   ))}
@@ -1435,7 +1653,106 @@
 //               </table>
 //             </div>
 //           )}
-//           {totalPages > 1 && <Paginator page={page} pages={totalPages} setPage={setPage} T={T} />}
+//           {totalPages > 1 && <Paginator page={page} pages={totalPages} setPage={setPage} T={T}/>}
+//         </div>
+//       )}
+
+//       {/* ── SWW LOG tab ── */}
+//       {tab === "sww" && (
+//         <div className="card" style={{ overflow: "hidden",
+//           border: `1px solid ${swwCount > 0 ? AI.swgBdr : T.border}` }}>
+//           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+//             padding: "14px 20px", borderBottom: `1px solid ${T.border}`,
+//             background: swwCount > 0 ? AI.swgBg : T.cardBg2 }}>
+//             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+//               <span style={{ fontSize: 18 }}>⚠</span>
+//               <div>
+//                 <div style={{ fontSize: 15, fontWeight: 700,
+//                   color: swwCount > 0 ? AI.swgText : T.t0 }}>
+//                   Something Went Wrong — Full Log
+//                 </div>
+//                 <div style={{ fontSize: 12, color: T.t2, marginTop: 1 }}>
+//                   Steps where AI returned "No Response" — model completely failed to respond
+//                 </div>
+//               </div>
+//             </div>
+//             <span style={{ padding: "3px 10px", borderRadius: 6, fontSize: 13, fontWeight: 700,
+//               background: swwCount > 0 ? "rgba(239,68,68,0.2)" : T.cardBg2,
+//               color: swwCount > 0 ? AI.swgText : T.t3,
+//               border: `1px solid ${swwCount > 0 ? AI.swgBdr : T.border}` }}>
+//               {swwCount} occurrence{swwCount !== 1 ? "s" : ""}
+//             </span>
+//           </div>
+
+//           {filtered.length === 0 ? (
+//             <div style={{ textAlign: "center", padding: "52px", color: T.t3 }}>
+//               <div style={{ fontSize: 32, marginBottom: 8, color: T.success }}>✓</div>
+//               <div style={{ fontSize: 15, fontWeight: 600, color: T.success }}>
+//                 No "Something Went Wrong" events
+//               </div>
+//               <div style={{ fontSize: 13, color: T.t3, marginTop: 4 }}>
+//                 AI has responded to all queries successfully
+//               </div>
+//             </div>
+//           ) : (
+//             <div style={{ overflowX: "auto" }}>
+//               <table>
+//                 <thead>
+//                   <tr>
+//                     <th>Timestamp</th><th>Project</th><th>Build</th>
+//                     <th>Step / Query</th><th>Status</th><th>Resp Time</th>
+//                     <th>error_msg</th><th>response_body</th>
+//                   </tr>
+//                 </thead>
+//                 <tbody>
+//                   {visible.map((e, i) => (
+//                     <tr key={i} className="sr" style={{
+//                       animationDelay: `${i * 16}ms`,
+//                       background: T.mode === "dark"
+//                         ? "rgba(239,68,68,0.05)" : "#FFF8F8",
+//                       borderLeft: `3px solid ${AI.swgText}`,
+//                     }}>
+//                       <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12,
+//                         color: T.t2, whiteSpace: "nowrap" }}>{fmtTime(e.run_ts)}</td>
+//                       <td style={{ fontWeight: 600, color: T.t0, fontSize: 13 }}>{e.project}</td>
+//                       <td>
+//                         <span className="badge" style={{ background: AI.accentBg,
+//                           color: AI.accent, border: `1px solid ${AI.accentBdr}` }}>
+//                           {e.build ? `#${e.build}` : "—"}
+//                         </span>
+//                       </td>
+//                       <td style={{ maxWidth: 240 }}>
+//                         <div style={{ fontWeight: 600, color: T.t0, fontSize: 13,
+//                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+//                           {e.step}
+//                         </div>
+//                       </td>
+//                       <td>
+//                         <span className="badge badge-fail">{e.status}</span>
+//                       </td>
+//                       <td style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12,
+//                         color: T.t2 }}>{e.resp_time?.toFixed(2)}s</td>
+//                       <td>
+//                         <span style={{ fontSize: 12, color: AI.swgText, fontStyle: "italic",
+//                           fontFamily: "'IBM Plex Mono',monospace",
+//                           background: AI.swgBg, padding: "2px 7px", borderRadius: 4 }}>
+//                           "No Response"
+//                         </span>
+//                       </td>
+//                       <td>
+//                         <span style={{ fontSize: 12, color: AI.swgText, fontStyle: "italic",
+//                           fontFamily: "'IBM Plex Mono',monospace",
+//                           background: AI.swgBg, padding: "2px 7px", borderRadius: 4 }}>
+//                           "No Response"
+//                         </span>
+//                       </td>
+//                     </tr>
+//                   ))}
+//                 </tbody>
+//               </table>
+//             </div>
+//           )}
+//           {totalPages > 1 && <Paginator page={page} pages={totalPages} setPage={setPage} T={T}/>}
 //         </div>
 //       )}
 //     </div>

@@ -1138,10 +1138,48 @@ function ArcAIPage({ results, T }) {
   const totalFailed = aiRuns.reduce((s, r) => s + (r.failed_steps || 0), 0);
   const failRate    = totalSteps > 0 ? ((totalFailed / totalSteps) * 100).toFixed(1) : "0.0";
   /* "Something Went Wrong" count — steps where AI gave NO response at all */
-  const swwCount    = useMemo(() =>
+  const swwCount = useMemo(() =>
     aiRuns.reduce((acc, r) =>
       acc + (r.steps || []).filter(s => isSWW(s)).length, 0
     ), [aiRuns]);
+
+  /* ── SWW Audio Alert ──────────────────────────────────────────────
+     Plays alert.mp3 (place in /public/alert.mp3) whenever swwCount
+     rises above 0. Tracks previous count so it only fires on NEW
+     detections, not on every re-render or page revisit.
+     - prevSwwRef: remembers last known count
+     - hasPlayedRef: prevents replaying on same count during polling
+  ────────────────────────────────────────────────────────────────── */
+  const prevSwwRef    = useRef(null);   // null = first render, not yet evaluated
+  const hasPlayedRef  = useRef(false);
+
+  useEffect(() => {
+    // Skip on very first render — don't alarm on page load
+    if (prevSwwRef.current === null) {
+      prevSwwRef.current = swwCount;
+      return;
+    }
+
+    // New SWW detected (count increased) and we haven't played for this count yet
+    if (swwCount > prevSwwRef.current && !hasPlayedRef.current) {
+      hasPlayedRef.current = true;
+      try {
+        const audio = new Audio("/alert.mp3");
+        audio.volume = 0.85;
+        audio.play().catch(() => {
+          /* Browsers may block autoplay without user interaction.
+             In that case the alert banner is still shown visually. */
+        });
+      } catch (_) { /* silence any construction errors */ }
+    }
+
+    // Count dropped back to 0 — reset so it can play again next time
+    if (swwCount === 0) {
+      hasPlayedRef.current = false;
+    }
+
+    prevSwwRef.current = swwCount;
+  }, [swwCount]);
 
   /* ── Filtered list per tab ── */
   const filtered = useMemo(() => {
