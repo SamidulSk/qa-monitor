@@ -1091,14 +1091,14 @@
 //     purpleBg:  T.mode === "dark" ? "rgba(139,92,246,0.12)" : "#F5F3FF",
 //   };
 
-//   /* ── All ARC AI runs from shared results array ──
-//      Match: project name contains "arc ai" (case-insensitive)
-//      OR script_type === "ai"
-//      No separate fetch needed — same MongoDB collection, same data.results  */
+//   /* ── Filter from shared results — no separate fetch, no race conditions.
+//      The main app fetch (with retry) already has all the data.
+//      We filter client-side so topbar project/status filters do NOT interfere.
+//      Match: project contains "arc ai" (case-insensitive) OR script_type="ai"  */
 //   const aiRuns = useMemo(() => {
-//     return results.filter(r => {
-//       const proj = (r.project || "").toLowerCase();
-//       return proj.includes("arc ai") || proj.startsWith("arc ai") || r.script_type === "ai";
+//     return (results || []).filter(r => {
+//       const proj = (r.project || "").toLowerCase().trim();
+//       return proj.includes("arc ai") || r.script_type === "ai";
 //     });
 //   }, [results]);
 
@@ -1152,32 +1152,47 @@
 
 //   const switchTab = (t) => { setTab(t); setPage(1); setSearch(""); setExpanded(null); };
 
-//   /* ── Empty state ── */
-//   if (totalRuns === 0) return (
-//     <div className="card fu" style={{ padding: "60px 24px", textAlign: "center" }}>
-//       <div style={{ fontSize: 44, marginBottom: 14 }}>⬡</div>
-//       <div style={{ fontSize: 18, fontWeight: 700, color: T.t0, marginBottom: 8 }}>No ARC AI runs yet</div>
-//       <div style={{ fontSize: 14, color: T.t2, maxWidth: 460, margin: "0 auto", lineHeight: 1.7 }}>
-//         Push data from your ARC AI scripts to the same API endpoint.
-//         Make sure the <code style={{ background: T.cardBg2, padding: "1px 7px", borderRadius: 4, fontSize: 13 }}>project</code> field
-//         contains <strong style={{ color: AI.accent }}>"ARC AI"</strong> — e.g. <em>"ARC AI Facilities"</em>.
+//   /* ── Empty state:
+//      - results is [] → main fetch still loading → show spinner
+//      - results has data but no ARC AI records → show guidance            */
+//   if (totalRuns === 0) {
+//     const mainStillLoading = !results || results.length === 0;
+//     return mainStillLoading ? (
+//       <div style={{ textAlign: "center", padding: "80px 20px", color: T.t3 }}>
+//         <div style={{
+//           width: 32, height: 32, borderRadius: "50%",
+//           border: `2px solid ${T.border}`, borderTop: `2px solid ${AI.accent}`,
+//           animation: "spin .7s linear infinite", margin: "0 auto 14px",
+//         }}/>
+//         <div style={{ fontSize: 14, fontWeight: 500, color: T.t2 }}>Loading ARC AI data…</div>
 //       </div>
-//       <div style={{
-//         marginTop: 24, padding: "14px 20px", background: AI.accentBg,
-//         border: `1px solid ${AI.accentBdr}`, borderRadius: 10,
-//         display: "inline-block", textAlign: "left", maxWidth: 460,
-//       }}>
-//         <div style={{ fontSize: 12, color: AI.accent, fontWeight: 700, marginBottom: 8, letterSpacing: "0.04em" }}>
-//           SAMPLE PROJECT NAMES THAT WILL APPEAR HERE
+//     ) : (
+//       <div className="card fu" style={{ padding: "60px 24px", textAlign: "center" }}>
+//         <div style={{ fontSize: 44, marginBottom: 14 }}>⬡</div>
+//         <div style={{ fontSize: 18, fontWeight: 700, color: T.t0, marginBottom: 8 }}>No ARC AI runs yet</div>
+//         <div style={{ fontSize: 14, color: T.t2, maxWidth: 460, margin: "0 auto", lineHeight: 1.7 }}>
+//           Push data from your ARC AI scripts using the same API endpoint.
+//           Make sure the <code style={{ background: T.cardBg2, padding: "1px 7px", borderRadius: 4, fontSize: 13 }}>project</code> field
+//           contains <strong style={{ color: AI.accent }}>"ARC AI"</strong> — e.g.{" "}
+//           <em style={{ color: T.t1 }}>"ARC AI Facilities"</em>.
 //         </div>
-//         {["ARC AI Facilities", "ARC AI SiteSite", "ARC AI Projects"].map(n => (
-//           <div key={n} style={{ fontSize: 13, color: T.t1, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 3 }}>
-//             "{n}"
+//         <div style={{
+//           marginTop: 24, padding: "14px 20px", background: AI.accentBg,
+//           border: `1px solid ${AI.accentBdr}`, borderRadius: 10,
+//           display: "inline-block", textAlign: "left", maxWidth: 380,
+//         }}>
+//           <div style={{ fontSize: 11, color: AI.accent, fontWeight: 700, marginBottom: 8, letterSpacing: "0.05em" }}>
+//             SAMPLE PROJECT NAMES
 //           </div>
-//         ))}
+//           {["ARC AI Facilities", "ARC AI SiteSite", "ARC AI Projects"].map(n => (
+//             <div key={n} style={{ fontSize: 13, color: T.t1, fontFamily: "'IBM Plex Mono',monospace", marginBottom: 3 }}>
+//               "{n}"
+//             </div>
+//           ))}
+//         </div>
 //       </div>
-//     </div>
-//   );
+//     );
+//   }
 
 //   return (
 //     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
