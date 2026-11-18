@@ -119,7 +119,7 @@ export default function App() {
     pushToast({ tone: "danger", title, body, ttl: 12000, action: { label: "Inspect", run: () => openRun(first._id) } });
     if (notify && canNotify() && Notification.permission === "granted") {
       try {
-        const n = new Notification(title, { body, tag: "qa-monitor-failure", icon: "/favicon.svg" });
+        const n = new Notification(title, { body, tag: "qa-monitor-failure", icon: "/icon-192.png" });
         n.onclick = () => { window.focus(); openRun(first._id); n.close(); };
       } catch { /* some browsers only allow notifications from a service worker */ }
     }
