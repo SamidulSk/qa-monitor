@@ -13,8 +13,7 @@ import { fmtDur, fmtTime, healthTone } from "../lib/format";
 import { downloadCSV } from "../lib/csv";
 
 const PER = 15;
-const ALERT_CHIME = "/alert.mp3";        // attention chime
-const ALERT_VOICE = "/alert-voice.wav";  // male voice: "Attention. ARC AI alert. Something went wrong. The AI did not respond."
+const ALERT_SOUND = "/alert-voice.wav";  // male voice: "Attention. ARC AI alert. Something went wrong. The AI did not respond."
 
 export function ArcAIPage({ results }) {
   const [expanded, setExpanded] = useState(null);
@@ -62,8 +61,8 @@ export function ArcAIPage({ results }) {
   /* ── SWW Audio Alert ───────────────────────────────────────────
      Fires only when the SWW count rises (not on first render), and
      re-arms once the count drops back to 0 — trigger logic unchanged.
-     Sound: chime (ALERT_CHIME) followed by a spoken male-voice
-     announcement (ALERT_VOICE). Swap either file in /public to change it. */
+     Sound: male-voice announcement only (ALERT_SOUND). Swap the file in
+     /public, or point ALERT_SOUND at another file, to change it. */
   const prevSwwRef   = useRef(null);
   const hasPlayedRef = useRef(false);
 
@@ -75,13 +74,9 @@ export function ArcAIPage({ results }) {
     if (swwCount > prevSwwRef.current && !hasPlayedRef.current) {
       hasPlayedRef.current = true;
       try {
-        const chime = new Audio(ALERT_CHIME);
-        const voice = new Audio(ALERT_VOICE);
-        chime.volume = 0.85;
-        voice.volume = 1;
-        const speak = () => voice.play().catch(() => { /* autoplay blocked — banner still shows */ });
-        chime.onended = speak;
-        chime.play().catch(speak); // if the chime can't play, still try the voice
+        const audio = new Audio(ALERT_SOUND);
+        audio.volume = 1;
+        audio.play().catch(() => { /* autoplay blocked — banner still shows */ });
       } catch { /* ignore construction errors */ }
     }
     if (swwCount === 0) {
