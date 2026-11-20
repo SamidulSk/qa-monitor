@@ -23,7 +23,7 @@ export function StatusHero({ results, error, lastUpdated, onSelectProduct }) {
       : failing.map(p => p.name).join(" · ");
 
   return (
-    <section className={`hero hero-${state} fu`}>
+    <section className={`hero spot hero-${state} fu`}>
       <div className="hero-main">
         <div className="hero-orb"><Icon size={20} strokeWidth={2.4} /></div>
         <div className="grow">

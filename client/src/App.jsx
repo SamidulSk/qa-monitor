@@ -2,6 +2,7 @@
 // Data flow is unchanged: useDashboardData() fetches /api/results, /summary and
 // /projects with the active filters and polls every 30 s. Pages are pure views.
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useNewFailures } from "./hooks/useNewFailures";
 import { ThemeContext } from "./lib/theme";
@@ -18,14 +19,25 @@ import { KpiSkeleton } from "./components/ui/KpiCard";
 import { Badge } from "./components/ui/primitives";
 import { Toasts } from "./components/ui/Toasts";
 
-/* Code-split pages: charts (recharts) load only when a page needs them */
-const Overview     = lazy(() => import("./pages/Overview").then(m => ({ default: m.Overview })));
-const FailuresPage = lazy(() => import("./pages/SimplePages").then(m => ({ default: m.FailuresPage })));
-const ProductsPage = lazy(() => import("./pages/SimplePages").then(m => ({ default: m.ProductsPage })));
-const StepsPage    = lazy(() => import("./pages/SimplePages").then(m => ({ default: m.StepsPage })));
-const BuildsPage   = lazy(() => import("./pages/SimplePages").then(m => ({ default: m.BuildsPage })));
-const RunsPage     = lazy(() => import("./pages/RunsPage").then(m => ({ default: m.RunsPage })));
-const ArcAIPage    = lazy(() => import("./pages/ArcAIPage").then(m => ({ default: m.ArcAIPage })));
+/* Code-split pages: charts (recharts) load only when a page needs them.
+   After first paint the remaining chunks are preloaded at idle time, so
+   later navigation is instant (see the prefetch effect in App). */
+const loadOverview = () => import("./pages/Overview");
+const loadSimple   = () => import("./pages/SimplePages");
+const loadRuns     = () => import("./pages/RunsPage");
+const loadArcAI    = () => import("./pages/ArcAIPage");
+const PAGE_CHUNKS  = [loadOverview, loadSimple, loadRuns, loadArcAI];
+
+const Overview     = lazy(() => loadOverview().then(m => ({ default: m.Overview })));
+const FailuresPage = lazy(() => loadSimple().then(m => ({ default: m.FailuresPage })));
+const ProductsPage = lazy(() => loadSimple().then(m => ({ default: m.ProductsPage })));
+const StepsPage    = lazy(() => loadSimple().then(m => ({ default: m.StepsPage })));
+const BuildsPage   = lazy(() => loadSimple().then(m => ({ default: m.BuildsPage })));
+const RunsPage     = lazy(() => loadRuns().then(m => ({ default: m.RunsPage })));
+const ArcAIPage    = lazy(() => loadArcAI().then(m => ({ default: m.ArcAIPage })));
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 const TV_PAGES = ["overview", "products", "arcai", "failures"];
 const TV_ROTATE_MS = 20000;
@@ -160,7 +172,55 @@ export default function App() {
     return () => clearTimeout(id);
   }, [tv, rotating, page, navigate]);
 
-  const toggleTheme = useCallback(() => setDark(d => !d), []);
+  /* Theme switch with a circular reveal from the click point (View Transitions
+     API). Falls back to an instant switch where unsupported / reduced motion. */
+  const toggleTheme = useCallback((e) => {
+    const root = document.documentElement;
+    const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    const apply = () => {
+      root.setAttribute("data-theme", next);           // set synchronously so the snapshot is correct
+      flushSync(() => setDark(next === "dark"));
+    };
+    if (!document.startViewTransition || prefersReducedMotion()) { apply(); return; }
+    const x = e?.clientX ?? window.innerWidth - 80;
+    const y = e?.clientY ?? 28;
+    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    const vt = document.startViewTransition(apply);
+    vt.ready.then(() => {
+      root.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+        { duration: 520, easing: "cubic-bezier(.22,1,.36,1)", pseudoElement: "::view-transition-new(root)" },
+      );
+    }).catch(() => {});
+  }, []);
+
+  /* Cursor spotlight on .spot cards — one passive listener, rAF-throttled */
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    let raf = 0, ev = null;
+    const onMove = (e) => {
+      ev = e;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const el = ev.target instanceof Element ? ev.target.closest(".spot") : null;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--mx", `${ev.clientX - r.left}px`);
+        el.style.setProperty("--my", `${ev.clientY - r.top}px`);
+      });
+    };
+    document.addEventListener("pointermove", onMove, { passive: true });
+    return () => { document.removeEventListener("pointermove", onMove); cancelAnimationFrame(raf); };
+  }, []);
+
+  /* Preload the other page chunks once the first data has rendered */
+  useEffect(() => {
+    if (loading) return;
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
+    const id = idle(() => PAGE_CHUNKS.forEach(load => load().catch(() => {})));
+    return () => (window.cancelIdleCallback || clearTimeout)(id);
+  }, [loading]);
   const refresh     = useCallback(() => fetchData(true), [fetchData]);
   const clearFilter = useCallback(() => setFilters({}), []);
 
@@ -228,6 +288,7 @@ export default function App() {
 
             {loading ? <LoadingSkeleton /> : (
               <ErrorBoundary key={page}>
+                <div className="page-enter">
                 <Suspense fallback={<LoadingSkeleton />}>
                   {page === "overview" && <Overview {...pageProps} onNavigate={navigate} onOpenRun={openRun}
                     onSelectProduct={selectProduct} activeProduct={filters.project} error={error} lastUpdated={lastUpdated} />}
@@ -238,6 +299,7 @@ export default function App() {
                   {page === "builds"   && <BuildsPage {...pageProps} />}
                   {page === "arcai"    && <ArcAIPage {...pageProps} />}
                 </Suspense>
+                </div>
               </ErrorBoundary>
             )}
           </main>

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Search, X, CircleCheck, CircleX } from "lucide-react";
 import { tv } from "../../lib/format";
+import { useSlidingIndicator } from "../../hooks/useSlidingIndicator";
 
 /* ─── Panel ─────────────────────────────────────────────────── */
 export function Panel({ title, sub, icon: Icon, actions, children, className = "", bodyClass, style, plainHead }) {
@@ -82,9 +83,9 @@ export function Sparkline({ data = [], tone = "accent", w = 84, h = 28 }) {
           <stop offset="100%" style={{ stopColor: c, stopOpacity: 0 }} />
         </linearGradient>
       </defs>
-      <polygon points={`0,${h} ${line} ${w},${h}`} fill={`url(#sp${id})`} />
-      <polyline points={line} fill="none" style={{ stroke: c }} strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={last.x} cy={last.y} r="2.75" style={{ fill: c, stroke: "var(--surface)" }} strokeWidth="1.5" />
+      <polygon className="spark-area" points={`0,${h} ${line} ${w},${h}`} fill={`url(#sp${id})`} />
+      <polyline className="spark-line" pathLength="1" points={line} fill="none" style={{ stroke: c }} strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+      <circle className="spark-dot" cx={last.x} cy={last.y} r="2.75" style={{ fill: c, stroke: "var(--surface)" }} strokeWidth="1.5" />
     </svg>
   );
 }
@@ -97,7 +98,7 @@ export function HealthRing({ value = 100, tone = "success", size = 64, stroke = 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }} role="img" aria-label={`${label} ${Math.round(v)}%`}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: "var(--surface-3)" }} strokeWidth={stroke} />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: c, transition: "stroke-dasharray 1.1s cubic-bezier(.22,1,.36,1)" }}
+      <circle className="ring-prog" cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: c, transition: "stroke-dasharray 1.1s cubic-bezier(.22,1,.36,1)" }}
         strokeWidth={stroke} strokeLinecap="round"
         strokeDasharray={`${circ * (v / 100)} ${circ}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
       <text x="50%" y={size / 2 + (label ? -1 : 4)} textAnchor="middle" style={{ fill: "var(--text-0)", fontWeight: 650, fontSize: size * 0.2, letterSpacing: "-.02em" }}>
@@ -170,8 +171,11 @@ export function Paginator({ page, pages, setPage, total, per }) {
 
 /* ─── Segmented control ─────────────────────────────────────── */
 export function Segmented({ options, value, onChange, ariaLabel }) {
+  const boxRef = useRef(null), thumbRef = useRef(null);
+  useSlidingIndicator(boxRef, thumbRef, "button.on", [value, options.length]);
   return (
-    <div className="seg" role="tablist" aria-label={ariaLabel}>
+    <div className="seg has-thumb" role="tablist" aria-label={ariaLabel} ref={boxRef}>
+      <span className={`seg-thumb${options.find(o => o.id === value)?.alert ? " alert" : ""}`} ref={thumbRef} aria-hidden="true" />
       {options.map(o => {
         const Icon = o.icon;
         return (

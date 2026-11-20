@@ -154,11 +154,11 @@ export function ArcAIPage({ results }) {
       {/* ── KPI row ── */}
       <div className="kpi-grid">
         <KpiCard label="AI script runs" value={totalRuns}   tone="ai"     icon={Sparkles}      sub="ARC AI projects" delay={0} />
-        <KpiCard label="Failed runs"    value={failedRuns}  tone="danger" icon={CircleX}       sub="Runs with failures" delay={40} />
+        <KpiCard label="Failed runs"    value={failedRuns}  tone="danger" icon={CircleX}       sub="Runs with failures" delay={40} upIsGood={false} />
         <KpiCard label="Steps checked"  value={totalSteps}  tone="info"   icon={ListChecks}    sub="AI queries executed" delay={80} />
-        <KpiCard label="Step failures"  value={totalFailed} tone="warn"   icon={TriangleAlert} sub="Individual step fails" delay={120} />
-        <KpiCard label="Failure rate"   value={parseFloat(failRate)} dec={1} suffix="%" tone={healthTone(parseFloat(failRate))} icon={Percent} sub="Steps failed" delay={160} />
-        <KpiCard label="Something Went Wrong" value={swwCount} tone="danger" icon={Ban} delay={200}
+        <KpiCard label="Step failures"  value={totalFailed} tone="warn"   icon={TriangleAlert} sub="Individual step fails" delay={120} upIsGood={false} />
+        <KpiCard label="Failure rate"   value={parseFloat(failRate)} dec={1} suffix="%" tone={healthTone(parseFloat(failRate))} icon={Percent} sub="Steps failed" delay={160} upIsGood={false} />
+        <KpiCard label="Something Went Wrong" value={swwCount} tone="danger" icon={Ban} delay={200} upIsGood={false}
           sub={swwCount > 0 ? "Click to open SWW log" : "No silent AI failures"}
           alerting={swwCount > 0} selected={swwCount > 0 && tab === "sww"}
           onClick={swwCount > 0 ? () => switchTab("sww") : undefined}
