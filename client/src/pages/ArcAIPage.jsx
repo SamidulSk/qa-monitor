@@ -13,8 +13,7 @@ import { fmtDur, fmtTime, healthTone } from "../lib/format";
 import { downloadCSV } from "../lib/csv";
 
 const PER = 15;
-const ALERT_CHIME = "/alert.mp3";        // attention chime
-const ALERT_VOICE = "/alert-voice.wav";  // male voice: "Attention. ARC AI alert. Something went wrong. The AI did not respond."
+const ALERT_SOUND = "/alert-voice.wav";  // male voice: "Attention. ARC AI alert. Something went wrong. The AI did not respond."
 
 export function ArcAIPage({ results }) {
   const [expanded, setExpanded] = useState(null);
@@ -62,8 +61,8 @@ export function ArcAIPage({ results }) {
   /* ── SWW Audio Alert ───────────────────────────────────────────
      Fires only when the SWW count rises (not on first render), and
      re-arms once the count drops back to 0 — trigger logic unchanged.
-     Sound: chime (ALERT_CHIME) followed by a spoken male-voice
-     announcement (ALERT_VOICE). Swap either file in /public to change it. */
+     Sound: male-voice announcement only (ALERT_SOUND). Swap the file in
+     /public, or point ALERT_SOUND at another file, to change it. */
   const prevSwwRef   = useRef(null);
   const hasPlayedRef = useRef(false);
 
@@ -75,13 +74,9 @@ export function ArcAIPage({ results }) {
     if (swwCount > prevSwwRef.current && !hasPlayedRef.current) {
       hasPlayedRef.current = true;
       try {
-        const chime = new Audio(ALERT_CHIME);
-        const voice = new Audio(ALERT_VOICE);
-        chime.volume = 0.85;
-        voice.volume = 1;
-        const speak = () => voice.play().catch(() => { /* autoplay blocked — banner still shows */ });
-        chime.onended = speak;
-        chime.play().catch(speak); // if the chime can't play, still try the voice
+        const audio = new Audio(ALERT_SOUND);
+        audio.volume = 1;
+        audio.play().catch(() => { /* autoplay blocked — banner still shows */ });
       } catch { /* ignore construction errors */ }
     }
     if (swwCount === 0) {
@@ -159,11 +154,11 @@ export function ArcAIPage({ results }) {
       {/* ── KPI row ── */}
       <div className="kpi-grid">
         <KpiCard label="AI script runs" value={totalRuns}   tone="ai"     icon={Sparkles}      sub="ARC AI projects" delay={0} />
-        <KpiCard label="Failed runs"    value={failedRuns}  tone="danger" icon={CircleX}       sub="Runs with failures" delay={40} />
+        <KpiCard label="Failed runs"    value={failedRuns}  tone="danger" icon={CircleX}       sub="Runs with failures" delay={40} upIsGood={false} />
         <KpiCard label="Steps checked"  value={totalSteps}  tone="info"   icon={ListChecks}    sub="AI queries executed" delay={80} />
-        <KpiCard label="Step failures"  value={totalFailed} tone="warn"   icon={TriangleAlert} sub="Individual step fails" delay={120} />
-        <KpiCard label="Failure rate"   value={parseFloat(failRate)} dec={1} suffix="%" tone={healthTone(parseFloat(failRate))} icon={Percent} sub="Steps failed" delay={160} />
-        <KpiCard label="Something Went Wrong" value={swwCount} tone="danger" icon={Ban} delay={200}
+        <KpiCard label="Step failures"  value={totalFailed} tone="warn"   icon={TriangleAlert} sub="Individual step fails" delay={120} upIsGood={false} />
+        <KpiCard label="Failure rate"   value={parseFloat(failRate)} dec={1} suffix="%" tone={healthTone(parseFloat(failRate))} icon={Percent} sub="Steps failed" delay={160} upIsGood={false} />
+        <KpiCard label="Something Went Wrong" value={swwCount} tone="danger" icon={Ban} delay={200} upIsGood={false}
           sub={swwCount > 0 ? "Click to open SWW log" : "No silent AI failures"}
           alerting={swwCount > 0} selected={swwCount > 0 && tab === "sww"}
           onClick={swwCount > 0 ? () => switchTab("sww") : undefined}

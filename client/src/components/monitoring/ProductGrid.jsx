@@ -26,8 +26,8 @@ function RunStrip({ runs }) {
   return (
     <div>
       <div className="strip" role="img" aria-label={`${passed} of ${ordered.length} recent runs passed`}>
-        {ordered.map(r => (
-          <i key={r._id} className={r.has_failure ? "bad" : ""}
+        {ordered.map((r, i) => (
+          <i key={r._id} className={r.has_failure ? "bad" : ""} style={{ "--i": i }}
             title={`${fmtTime(r.timestamp)} · ${r.has_failure ? `Failed (${r.failed_steps}/${r.total_steps} steps)` : "Passed"}${r.build_number ? ` · #${r.build_number}` : ""}`} />
         ))}
       </div>
@@ -47,7 +47,7 @@ export function ProductGrid({ results, onSelectProduct, activeProduct }) {
         const rate = d.steps > 0 ? (d.failSteps / d.steps) * 100 : 0;
         const tone = healthTone(rate);
         return (
-          <article key={name} className="product fu" style={{ animationDelay: `${i * 45}ms`, "--tone": tv(tone) }}>
+          <article key={name} className="product spot fu" style={{ animationDelay: `${i * 45}ms`, "--tone": tv(tone) }}>
             <div className="row" style={{ alignItems: "flex-start", gap: 12 }}>
               <div className="grow">
                 <div className="product-name">{name}</div>

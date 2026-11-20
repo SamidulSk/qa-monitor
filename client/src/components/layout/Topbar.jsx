@@ -5,7 +5,7 @@ import {
   Bell, BellOff, Tv,
 } from "lucide-react";
 import { POLL_MS } from "../../lib/api";
-import { SelectField } from "../ui/primitives";
+import { SelectField, Segmented } from "../ui/primitives";
 import { TIME_PRESETS, presetToFromTo } from "../../lib/constants";
 import { fmtTime, relTime } from "../../lib/format";
 
@@ -31,6 +31,7 @@ function LiveStatus({ lastUpdated, error, busy }) {
         <circle className="prog" cx="8" cy="8" r="6" strokeDasharray={C} strokeDashoffset={C * (1 - left / POLL_MS)} />
       </svg>
       {label}
+      {lastUpdated && <span key={String(lastUpdated)} className="chip-flash" aria-hidden="true" />}
     </span>
   );
 }
@@ -75,7 +76,7 @@ export function Topbar({ title, lastUpdated, busy, error, onRefresh, filters, se
           <Tv size={16} />
         </button>
         <button className="btn btn-ghost btn-icon" onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme">
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          <span key={String(isDark)} className="theme-icon">{isDark ? <Sun size={16} /> : <Moon size={16} />}</span>
         </button>
         <button className="btn btn-primary" onClick={onRefresh} title="Refresh data now">
           <RefreshCw size={14} className={busy ? "spin" : undefined} aria-hidden="true" />
@@ -95,14 +96,9 @@ export function Topbar({ title, lastUpdated, busy, error, onRefresh, filters, se
 
         <span className="vdiv hide-mobile" />
 
-        <div className="seg" role="group" aria-label="Time range">
-          {TIME_PRESETS.map(p => (
-            <button key={p.id} className={activePreset === p.id ? "on" : ""} onClick={() => applyPreset(p.id)}>{p.label}</button>
-          ))}
-          <button className={showCustom ? "on" : ""} onClick={() => applyPreset("custom")}>
-            <CalendarRange size={13} /> Custom
-          </button>
-        </div>
+        <Segmented ariaLabel="Time range" onChange={applyPreset}
+          value={showCustom ? "custom" : activePreset}
+          options={[...TIME_PRESETS, { id: "custom", label: "Custom", icon: CalendarRange }]} />
 
         {showCustom && (
           <div className="row fi">

@@ -1,11 +1,15 @@
 // src/components/layout/Sidebar.jsx
+import { useRef } from "react";
 import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { useSlidingIndicator } from "../../hooks/useSlidingIndicator";
 import { NAV } from "../../lib/constants";
 import { POLL_MS } from "../../lib/api";
 
 export function Sidebar({ active, onNavigate, failCount, swwCount, collapsed, onToggleCollapse, drawer, onClose, online }) {
   const groups = [...new Set(NAV.map(n => n.group))];
   const isCollapsed = collapsed && !drawer;
+  const navRef = useRef(null), indRef = useRef(null);
+  useSlidingIndicator(navRef, indRef, ".sb-item.active", [active, isCollapsed]);
 
   return (
     <aside className={`sidebar${isCollapsed ? " collapsed" : ""}${drawer ? " drawer" : ""}`} aria-label="Primary">
@@ -25,7 +29,8 @@ export function Sidebar({ active, onNavigate, failCount, swwCount, collapsed, on
         <span className="sb-live-text">{online ? "QA Monitor · Live" : "Connection issue"}</span>
       </div>
 
-      <nav className="sb-nav">
+      <nav className="sb-nav" ref={navRef}>
+        <span className="sb-indicator" ref={indRef} aria-hidden="true" />
         {groups.map(g => (
           <div key={g}>
             <div className="sb-group">{g}</div>

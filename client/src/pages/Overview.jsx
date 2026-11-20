@@ -74,11 +74,11 @@ export function Overview({ summary, results, onNavigate, onOpenRun, onSelectProd
 
   const cards = [
     { label: "Total script runs",   value: kpi.total_runs || 0,      tone: "accent", icon: PlayCircle,   spark: spark.runs,       sub: "All products combined" },
-    { label: "Failed runs",         value: kpi.failed_runs || 0,     tone: "danger", icon: CircleX,      spark: spark.failedRuns, sub: "Runs with failures" },
+    { label: "Failed runs",         value: kpi.failed_runs || 0,     tone: "danger", icon: CircleX,      spark: spark.failedRuns, sub: "Runs with failures", upIsGood: false },
     { label: "Step executions",     value: kpi.total_steps_run || 0, tone: "info",   icon: ListChecks,   spark: spark.steps,      sub: "Total step checks" },
-    { label: "Step failures",       value: kpi.total_failures || 0,  tone: "warn",   icon: TriangleAlert, spark: spark.failedSteps,     sub: "Individual step fails" },
-    { label: "Failure rate",        value: fr, dec: 1, suffix: "%",  tone: healthTone(fr), icon: Percent, sub: "Overall health" },
-    { label: "Avg script duration", value: kpi.avg_duration || 0, dec: 1, suffix: "s", tone: "ai", icon: Timer, sub: "Seconds per run" },
+    { label: "Step failures",       value: kpi.total_failures || 0,  tone: "warn",   icon: TriangleAlert, spark: spark.failedSteps,     sub: "Individual step fails", upIsGood: false },
+    { label: "Failure rate",        value: fr, dec: 1, suffix: "%",  tone: healthTone(fr), icon: Percent, sub: "Overall health", upIsGood: false },
+    { label: "Avg script duration", value: kpi.avg_duration || 0, dec: 1, suffix: "s", tone: "ai", icon: Timer, sub: "Seconds per run", upIsGood: false },
   ];
 
   return (
